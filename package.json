@@ -1,0 +1,22 @@
+{
+	"name": "chess-monorepo",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"start": "concurrently --kill-others \"npm run start:server\" \"npm run start:client\"",
+		"start:client": "npm run start -w chessfront",
+		"start:server": "npm run start:dev -w chessback",
+		"build": "npm run build:common && npm run build:client && npm:run build:server",
+		"build:client": "npm run build -w chessfront",
+		"build:common": "npm run build -w chesscommon",
+		"build:server": "npm run build -w chessback"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.5.3"
+	},
+	"author": "",
+	"license": "ISC",
+	"workspaces": ["./projects/*"]
+}

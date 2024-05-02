@@ -1,0 +1,8 @@
+.Piece {
+  position: relative;
+  width: 100%;
+}
+
+.Piece:hover {
+  filter: drop-shadow(0px 0px 10px #7B61FF);
+}

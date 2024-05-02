@@ -1,0 +1,24 @@
+.Toolbar {
+  display: flex;
+  align-items: center;
+  height: 64px;
+  padding: 0 16px;
+  background: #3c0c4f;
+  box-shadow: 0px 4px 4px #3c0c4f2e;
+  z-index: 1;
+  gap: 8px;
+
+}
+
+.Toolbar h3 {
+  text-align: center;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+}
+
+.ToolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

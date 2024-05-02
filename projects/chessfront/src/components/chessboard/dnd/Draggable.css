@@ -1,0 +1,16 @@
+.Draggable {
+  position: relative;
+  z-index: 1;
+  opacity: 1 !important;
+  width: 75%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.Draggable.disabled {
+  pointer-events: none;
+}
+
+.Draggable.isdragging {
+  opacity: 0.25 !important;
+}

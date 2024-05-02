@@ -1,0 +1,24 @@
+.Login {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.Login>div {
+  display: flex;
+  gap: 16px;
+}
+
+.Login form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.Login form span {
+  color: red;
+  font-style: italic;
+}
