@@ -10,7 +10,11 @@ import { v4 as uuidv4 } from 'uuid'
 
 const REFRESH_GAMES_LIST_EVENTS = ['addNewGame', 'deleteGame']
 const REFRESH_GAME_EVENTS = ['addWatcher', 'removeWatcher']
+const REFRESH_WORD_EVENTS = ['refreshWord']
+const REFRESH_REACT_PAINT = ['refreshReactPaint']
 
+let WORD = ''
+let REACTPAINT_DATA: unknown = {}
 const publicRouter = router({
 	getMe: publicProcedure.query(opts => {
 		const { ctx } = opts
@@ -96,7 +100,55 @@ const publicRouter = router({
 					removeWatcher()
 				}
 			})
+		}),
+
+	setWord: publicProcedure.input(z.object({ value: z.string() })).mutation(async opts => {
+		WORD = opts.input.value
+		ee.emit('refreshWord')
+		return true
+	}),
+	onGetWord: publicProcedure.subscription(() => {
+		return observable<string>(emit => {
+			const onRefreshWord = async () => {
+				console.log('onRefreshWord')
+				emit.next(WORD)
+			}
+
+			for (const eventName of REFRESH_WORD_EVENTS) {
+				ee.on(eventName, onRefreshWord)
+			}
+			onRefreshWord()
+			return () => {
+				for (const eventName of REFRESH_WORD_EVENTS) {
+					ee.off(eventName, onRefreshWord)
+				}
+			}
 		})
+	}),
+
+	setPaint: publicProcedure.input(z.object({ value: z.unknown() })).mutation(async opts => {
+		REACTPAINT_DATA = opts.input.value
+		ee.emit('refreshReactPaint')
+		return true
+	}),
+	onGetPaint: publicProcedure.subscription(() => {
+		return observable<unknown>(emit => {
+			const onRefreshPaint = async () => {
+				console.log('onGetPaint')
+				emit.next(REACTPAINT_DATA)
+			}
+
+			for (const eventName of REFRESH_REACT_PAINT) {
+				ee.on(eventName, onRefreshPaint)
+			}
+			onRefreshPaint()
+			return () => {
+				for (const eventName of REFRESH_REACT_PAINT) {
+					ee.off(eventName, onRefreshPaint)
+				}
+			}
+		})
+	})
 })
 
 export default publicRouter

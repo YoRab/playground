@@ -6,6 +6,9 @@ import { trpc } from '../utils/trpc'
 import Loading from './Loading'
 import { getPathRoute } from '../utils/path'
 import Board from './board/board'
+import Word from './word/word'
+import Paint from './reactPaint/paint'
+import '@yorab/react-paint/react-paint.css'
 
 const WithToolbar = ({ Component, name }: { Component: () => JSX.Element; name: string }) => {
 	return (
@@ -31,6 +34,16 @@ const PATHS = {
 		elements: <Login />,
 		private: false,
 		public: true
+	},
+	word: {
+		elements: <WithToolbar Component={Word} name='Word' />,
+		private: true,
+		public: false
+	},
+	paint: {
+		elements: <WithToolbar Component={Paint} name='Paint' />,
+		private: true,
+		public: false
 	}
 }
 

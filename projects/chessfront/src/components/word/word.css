@@ -1,0 +1,10 @@
+.ScreenWord {
+  position: relative;
+  width: 100%;
+}
+
+.WordContent {
+  display: inline-block;
+  width: 100%;
+  min-height: 200px;
+}
