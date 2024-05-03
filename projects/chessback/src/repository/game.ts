@@ -9,10 +9,11 @@ const resolveUsers = async (game?: DBGame): Promise<Game | undefined> => {
 	const users = (await Promise.all(game.players.map(async user => (user ? await userApi.findById(user) : undefined)))).filter(
 		user => !!user
 	) as Game['players']
-	const watchers = (await Promise.all(game.watchers.map(async user => (user ? await userApi.findById(user) : undefined)))).filter(
-		user => !!user
-	) as Game['watchers']
 
+	const watchers = (await Promise.all(game.watchers.map(async ([socketId, userId]) => await userApi.findById(userId)))).filter(
+		(user, index, array) => !!user && array.indexOf(user) === index
+	) as Game['watchers']
+	console.log(watchers)
 	return {
 		...game,
 		owner,
@@ -58,35 +59,32 @@ export const deleteGame = async (gameId: string, ownerId: string): Promise<boole
 	return true
 }
 
-export const addWatcher = async (gameId: string, watcher: string): Promise<Game | undefined> => {
+export const addWatcher = async (gameId: string, socketId: string, watcherId: string): Promise<Game | undefined> => {
 	const game = await gameApi.findById(gameId)
 	if (!game) {
 		return
 	}
 
-	const userFound = await userApi.findById(watcher)
+	const userFound = await userApi.findById(watcherId)
 	if (!userFound) {
 		return resolveUsers(game!)
 	}
 	const refreshedGame = await gameApi.addWatcher({
-		user: watcher,
+		socketId: socketId,
+		userId: watcherId,
 		game: gameId
 	})
 	return resolveUsers(refreshedGame!)
 }
 
-export const removeWatcher = async (gameId: string, watcher: string): Promise<Game | undefined> => {
+export const removeWatcher = async (gameId: string, socketId: string): Promise<Game | undefined> => {
 	const game = await gameApi.findById(gameId)
 	if (!game) {
 		return
 	}
 
-	const userFound = await userApi.findById(watcher)
-	if (!userFound) {
-		return resolveUsers(game!)
-	}
-	const refreshedGame = await gameApi.addWatcher({
-		user: watcher,
+	const refreshedGame = await gameApi.removeWatcher({
+		socketId,
 		game: gameId
 	})
 	return resolveUsers(refreshedGame!)

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import './board.css'
 import { trpc } from '../../utils/trpc'
 import { getPathParams } from '../../utils/path'

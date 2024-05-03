@@ -6,6 +6,7 @@ import * as gameRepo from '../repository/game'
 import { ee, publicProcedure, router } from '../services/trpc'
 import { findMany as findGames } from '../repository/game'
 import type { Game } from 'chesscommon/src/model'
+import { v4 as uuidv4 } from 'uuid'
 
 const REFRESH_GAMES_LIST_EVENTS = ['addNewGame', 'deleteGame']
 const REFRESH_GAME_EVENTS = ['addWatcher', 'removeWatcher']
@@ -48,44 +49,44 @@ const publicRouter = router({
 				userId: z.string().optional()
 			})
 		)
-		.subscription(opts => {
+		.subscription(async opts => {
 			const { gameId, userId } = opts.input
+			const game = await gameRepo.findGameById(gameId)
+
+			const subTempId = uuidv4()
 
 			return observable<Game>(emit => {
 				const onRefreshGame = async () => {
-					const game = await gameRepo.findGameById(gameId)
-
 					console.log('refresh game')
-					game && emit.next(game)
+					emit.next(game!)
 				}
 
 				const addWatcher = async () => {
-					if (!userId) {
-						emit.error('unknown user')
-						return
-					}
-					const game = await gameRepo.findGameById(gameId)
-					if (!game) {
-						emit.error('unknown game')
-						return
-					}
+					console.log('addwatcher ', subTempId)
 
 					for (const eventName of REFRESH_GAME_EVENTS) {
 						ee.on(eventName, onRefreshGame)
 					}
 
-					await gameRepo.addWatcher(gameId, userId)
-					console.log('add watcher')
+					await gameRepo.addWatcher(gameId, subTempId, userId!)
 					ee.emit('addWatcher')
 				}
 
+				if (!userId) {
+					emit.error('unknown user')
+					return
+				}
+				if (!game) {
+					emit.error('unknown game')
+					return
+				}
 				addWatcher()
 
 				return () => {
 					const removeWatcher = async () => {
+						console.log('remove watcher ', subTempId)
+						await gameRepo.removeWatcher(gameId, subTempId)
 						ee.emit('removeWatcher')
-						if (!userId) return
-						await gameRepo.removeWatcher(gameId, userId)
 					}
 
 					for (const eventName of REFRESH_GAME_EVENTS) {
