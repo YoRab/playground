@@ -31,7 +31,9 @@ const Board = () => {
 
 	return (
 		<div className='ScreenBoard'>
-			<a href='#/home'>Retour</a>
+			<a className='button' href='#/home'>
+				Retour
+			</a>
 			{error ?? (game ? <ChessBoard /> : <Loading />)}
 		</div>
 	)

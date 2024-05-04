@@ -9,12 +9,14 @@ import Board from './board/board'
 import Word from './word/word'
 import Paint from './reactPaint/paint'
 import '@yorab/react-paint/react-paint.css'
+import Footer from './Footer'
 
 const WithToolbar = ({ Component, name }: { Component: () => JSX.Element; name: string }) => {
 	return (
 		<>
 			<Toolbar screen={name} />
 			<Component />
+			<Footer />
 		</>
 	)
 }
@@ -31,7 +33,7 @@ const PATHS = {
 		public: false
 	},
 	login: {
-		elements: <Login />,
+		elements: <WithToolbar Component={Login} name='Login' />,
 		private: false,
 		public: true
 	},
