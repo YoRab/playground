@@ -8,7 +8,7 @@ type AnnotationsType = ReturnType<NonNullable<NonNullable<Parameters<typeof Reac
 const Paint = () => {
 	const apiRef: Parameters<typeof ReactPaint>[0]['apiRef'] = useRef()
 	const [shapes, setShapes] = useState<AnnotationsType>(undefined)
-	const tempShapes = useRef<string | undefined>(undefined)
+	const tempShapes = useRef<string | undefined>('[]')
 	const [error, setError] = useState<string | undefined>()
 
 	const userQuery = trpc.public.getMe.useQuery()
@@ -33,7 +33,9 @@ const Paint = () => {
 	const saveAnnotation = useCallback(() => {
 		if (!apiRef.current) return
 		const drawData = apiRef.current.getCurrentData()
-		tempShapes.current = JSON.stringify(drawData.shapes)
+		const newData = JSON.stringify(drawData.shapes)
+		if (tempShapes.current === newData) return
+		tempShapes.current = newData
 		setPaintMutation.mutate({ value: drawData.shapes })
 	}, [setPaintMutation])
 
