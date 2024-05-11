@@ -2,13 +2,14 @@ import React from 'react'
 import './Cell.css'
 import { useDroppable } from '@dnd-kit/core'
 import Piece from './Piece'
-import type { PieceType } from '@front/constants/pieces'
 import Draggable from './dnd/Draggable'
+import { PieceType } from '@common/chess'
 
 const COL_KEY = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
 const Cell = ({
-	playing,
+	playerTurn,
+	userColor,
 	piece,
 	id,
 	col,
@@ -17,7 +18,8 @@ const Cell = ({
 	isSelected,
 	handleDropOnCell
 }: {
-	playing: 0 | 1
+	playerTurn: 'white' | 'black'
+	userColor: 'white' | 'black' | undefined
 	piece: PieceType | undefined
 	id: string
 	col: number
@@ -34,8 +36,8 @@ const Cell = ({
 			handleDropOnCell(row, col)
 		}
 	}
-
-	const disabled = (piece?.color === 'black' && playing === 1) || (piece?.color === 'white' && playing === 0)
+	const isUserTurn = userColor === playerTurn
+	const disabled = !isUserTurn || (piece && piece?.color !== playerTurn)
 
 	return (
 		<div

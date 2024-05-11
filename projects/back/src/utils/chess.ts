@@ -1,5 +1,257 @@
 import { PieceType } from '@common/chess'
-import { moveCell } from '@front/utils/array'
+
+const PIECE_ORDER = ['r1', 'k1', 'b1', 'queen', 'king', 'b2', 'k2', 'r2']
+
+/**
+ * TODO
+ * - ROC
+ * - Prise en passant
+ * - Promotion
+ * - end game
+ *  */
+
+export const getInitBoard = () => {
+	const board: (string | null)[][] = []
+	for (let row = 0; row < 8; row++) {
+		const boardRow: (string | null)[] = []
+		for (let col = 0; col < 8; col++) {
+			switch (row) {
+				case 0:
+				case 7:
+					boardRow[col] = `${row === 0 ? 'b' : 'w'}${PIECE_ORDER[col]}`
+					break
+				case 1:
+				case 6:
+					boardRow[col] = `${row === 1 ? 'b' : 'w'}p${col + 1}`
+					break
+				default:
+					boardRow[col] = null
+					break
+			}
+		}
+		board[row] = boardRow
+	}
+	return board
+}
+
+export const PIECES: PieceType[] = [
+	{
+		position: [0, 0],
+		type: 'rook',
+		color: 'black',
+		id: 'br1'
+	},
+	{
+		position: [0, 1],
+		type: 'knight',
+		color: 'black',
+		id: 'bk1'
+	},
+	{
+		position: [0, 2],
+		type: 'bishop',
+		color: 'black',
+		id: 'bb1'
+	},
+	{
+		position: [0, 3],
+		type: 'queen',
+		color: 'black',
+		id: 'bqueen'
+	},
+	{
+		position: [0, 4],
+		type: 'king',
+		color: 'black',
+		id: 'bking'
+	},
+	{
+		position: [0, 5],
+		type: 'bishop',
+		color: 'black',
+		id: 'bb2'
+	},
+	{
+		position: [0, 6],
+		type: 'knight',
+		color: 'black',
+		id: 'bk2'
+	},
+	{
+		position: [0, 7],
+		type: 'rook',
+		color: 'black',
+		id: 'br2'
+	},
+	{
+		position: [1, 0],
+		type: 'pawn',
+		color: 'black',
+		id: 'bp1'
+	},
+	{
+		position: [1, 1],
+		type: 'pawn',
+		color: 'black',
+		id: 'bp2'
+	},
+	{
+		position: [1, 2],
+		type: 'pawn',
+		color: 'black',
+		id: 'bp3'
+	},
+	{
+		position: [1, 3],
+		type: 'pawn',
+		color: 'black',
+		id: 'bp4'
+	},
+	{
+		position: [1, 4],
+		type: 'pawn',
+		color: 'black',
+		id: 'bp5'
+	},
+	{
+		position: [1, 5],
+		type: 'pawn',
+		color: 'black',
+		id: 'bp6'
+	},
+	{
+		position: [1, 6],
+		type: 'pawn',
+		color: 'black',
+		id: 'bp7'
+	},
+	{
+		position: [1, 7],
+		type: 'pawn',
+		color: 'black',
+		id: 'bp8'
+	},
+	{
+		position: [6, 0],
+		type: 'pawn',
+		color: 'white',
+		id: 'wp1'
+	},
+	{
+		position: [6, 1],
+		type: 'pawn',
+		color: 'white',
+		id: 'wp2'
+	},
+	{
+		position: [6, 2],
+		type: 'pawn',
+		color: 'white',
+		id: 'wp3'
+	},
+	{
+		position: [6, 3],
+		type: 'pawn',
+		color: 'white',
+		id: 'wp4'
+	},
+	{
+		position: [6, 4],
+		type: 'pawn',
+		color: 'white',
+		id: 'wp5'
+	},
+	{
+		position: [6, 5],
+		type: 'pawn',
+		color: 'white',
+		id: 'wp6'
+	},
+	{
+		position: [6, 6],
+		type: 'pawn',
+		color: 'white',
+		id: 'wp7'
+	},
+	{
+		position: [6, 7],
+		type: 'pawn',
+		color: 'white',
+		id: 'wp8'
+	},
+	{
+		position: [7, 0],
+		type: 'rook',
+		color: 'white',
+		id: 'wr1'
+	},
+	{
+		position: [7, 1],
+		type: 'knight',
+		color: 'white',
+		id: 'wk1'
+	},
+	{
+		position: [7, 2],
+		type: 'bishop',
+		color: 'white',
+		id: 'wb1'
+	},
+
+	{
+		position: [7, 3],
+		type: 'queen',
+		color: 'white',
+		id: 'wqueen'
+	},
+
+	{
+		position: [7, 4],
+		type: 'king',
+		color: 'white',
+		id: 'wking'
+	},
+
+	{
+		position: [7, 5],
+		type: 'bishop',
+		color: 'white',
+		id: 'wb2'
+	},
+	{
+		position: [7, 6],
+		type: 'knight',
+		color: 'white',
+		id: 'wk2'
+	},
+	{
+		position: [7, 7],
+		type: 'rook',
+		color: 'white',
+		id: 'wr2'
+	}
+]
+
+export const moveCell = ({
+	board,
+	currentActive,
+	newPosition: [row, col]
+}: {
+	board: (string | null)[][]
+	currentActive: Pick<PieceType, 'id' | 'position'>
+	newPosition: [number, number]
+}) => {
+	if (!currentActive.position) return board
+	const boardRow = board[currentActive.position[0]]
+	const newBoardCol = [...boardRow.slice(0, currentActive.position[1]), null, ...boardRow.slice(currentActive.position[1] + 1)]
+	const newBoard = [...board.slice(0, currentActive.position[0]), newBoardCol, ...board.slice(currentActive.position[0] + 1)]
+
+	const newBoardRow = newBoard[row]
+	const newNewBoardCol = [...newBoardRow.slice(0, col), currentActive.id, ...newBoardRow.slice(col + 1)]
+	const newNewBoard = [...newBoard.slice(0, row), newNewBoardCol, ...newBoard.slice(row + 1)]
+
+	return newNewBoard
+}
 
 const getMoveIfFree = ({
 	board,
@@ -385,7 +637,7 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
 	return moves
 }
 
-const getPiecesMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
+export const getPiecesMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
 	switch (active.type) {
 		case 'pawn':
 			return getPawnMoves(board, pieces, active)
@@ -431,8 +683,7 @@ const getMovesWithoutChessMate = ({
 	for (const move of moves) {
 		const simulatedBoard = moveCell({
 			board,
-			row: move[0],
-			col: move[1],
+			newPosition: move,
 			currentActive: active
 		})
 		const newPieces = pieces.map(piece => {

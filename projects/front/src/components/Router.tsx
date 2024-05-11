@@ -5,11 +5,11 @@ import Login from './login/Login'
 import { trpc } from '@front/utils/trpc'
 import Loading from './Loading'
 import { getPathRoute } from '@front/utils/path'
-import Board from './board/board'
 import Word from './word/word'
 import Paint from './reactPaint/paint'
 import '@yorab/react-paint/react-paint.css'
 import Footer from './Footer'
+import Board from '@front/components/board/board'
 
 const WithToolbar = ({ Component, name }: { Component: () => JSX.Element; name: string }) => {
 	return (

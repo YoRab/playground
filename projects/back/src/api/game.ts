@@ -1,73 +1,79 @@
 import { v4 as uuidv4 } from 'uuid'
 
-export type DBGame = {
+export type DBSession = {
 	id: string
 	owner: string
-	players: [string, string] | [string] | []
 	watchers: [string, string][]
 	createdAt: number
-	startedAt: number | null
+	boards: { type: string; id: string }[]
 }
 
-let games: DBGame[] = []
+let sessions: DBSession[] = []
 
-const gameApi = {
-	findMany: async () => games,
+const sessionApi = {
+	findMany: async () => sessions,
 
-	findById: async (id: string) => games.find(game => game.id === id),
+	findById: async (id: string) => sessions.find(session => session.id === id),
 
 	create: async (data: { owner: string }) => {
-		const game: DBGame = {
+		const session: DBSession = {
 			id: uuidv4(),
 			...data,
-			players: [],
 			watchers: [],
 			createdAt: Date.now(),
-			startedAt: null
+			boards: []
 		}
-		games.push(game)
-		return game
+		sessions.push(session)
+		return session
 	},
-	delete: async (data: { gameId: string }) => {
-		games = games.filter(game => game.id !== data.gameId)
+	delete: async (data: { sessionId: string }) => {
+		sessions = sessions.filter(session => session.id !== data.sessionId)
 		return true
 	},
-	addWatcher: async (data: { socketId: string; userId: string; game: string }) => {
-		const gameIndex = games.findIndex(item => item.id === data.game)
-		if (gameIndex < 0) return null
+	addWatcher: async (data: { socketId: string; userId: string; session: string }) => {
+		const sessionIndex = sessions.findIndex(item => item.id === data.session)
+		if (sessionIndex < 0) return null
 
-		const isSocketAlreadyRegistered = games[gameIndex].watchers.find(([socket, user]) => socket === data.socketId) !== undefined
-		if (isSocketAlreadyRegistered) return games[gameIndex]
+		const isSocketAlreadyRegistered = sessions[sessionIndex].watchers.find(([socket, user]) => socket === data.socketId) !== undefined
+		if (isSocketAlreadyRegistered) return sessions[sessionIndex]
 
-		games[gameIndex] = {
-			...games[gameIndex],
-			watchers: [...games[gameIndex].watchers, [data.socketId, data.userId]]
+		sessions[sessionIndex] = {
+			...sessions[sessionIndex],
+			watchers: [...sessions[sessionIndex].watchers, [data.socketId, data.userId]]
 		}
-		return games[gameIndex]
+		return sessions[sessionIndex]
 	},
-	removeWatcher: async (data: { socketId: string; game: string }) => {
-		const gameIndex = games.findIndex(item => item.id === data.game)
-		if (gameIndex < 0) return null
+	removeWatcher: async (data: { socketId: string; session: string }) => {
+		const sessionIndex = sessions.findIndex(item => item.id === data.session)
+		if (sessionIndex < 0) return null
 
-		games[gameIndex] = {
-			...games[gameIndex],
-			watchers: games[gameIndex].watchers.filter(([socket, user]) => socket !== data.socketId)
+		sessions[sessionIndex] = {
+			...sessions[sessionIndex],
+			watchers: sessions[sessionIndex].watchers.filter(([socket, user]) => socket !== data.socketId)
 		}
-		return games[gameIndex]
+		return sessions[sessionIndex]
 	},
-	addPlayer: async (data: { user: string; game: string }) => {
-		const gameIndex = games.findIndex(item => item.id === data.game)
+	addBoard: async (data: { boardId: string; sessionId: string; type: string }) => {
+		const sessionIndex = sessions.findIndex(item => item.id === data.sessionId)
 
-		if (gameIndex < 0) return null
-		if (games[gameIndex].players.length > 1) return games[gameIndex]
-		if (games[gameIndex].players.findIndex(playerId => playerId === data.user) !== undefined) return games[gameIndex]
+		if (sessionIndex < 0) return null
 
-		games[gameIndex] = {
-			...games[gameIndex],
-			players: [...games[gameIndex].players, data.user] as [string, string] | [string]
+		sessions[sessionIndex] = {
+			...sessions[sessionIndex],
+			boards: [...sessions[sessionIndex].boards, { type: data.type, id: data.boardId }]
 		}
-		return games[gameIndex]
+		return sessions[sessionIndex]
+	},
+	removeBoard: async (data: { boardId: string; sessionId: string }) => {
+		const sessionIndex = sessions.findIndex(item => item.id === data.sessionId)
+		if (sessionIndex < 0) return null
+
+		sessions[sessionIndex] = {
+			...sessions[sessionIndex],
+			boards: sessions[sessionIndex].boards.filter(board => board.id !== data.boardId)
+		}
+		return sessions[sessionIndex]
 	}
 }
 
-export default gameApi
+export default sessionApi

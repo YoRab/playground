@@ -1,4 +1,4 @@
-import { JWT_SECRET_KEY } from '../constants/jwt'
+import { JWT_SECRET_KEY } from '@back/constants/jwt'
 import jwt from 'jsonwebtoken'
 import { findUserById } from '@back/repository/user'
 import { User } from '@common/model'

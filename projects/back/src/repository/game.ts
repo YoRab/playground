@@ -1,50 +1,45 @@
-import gameApi, { DBGame } from '@back/api/game'
+import sessionApi, { DBSession } from '@back/api/game'
 import userApi from '@back/api/user'
-import type { Game } from '@common/model'
+import type { Session } from '@common/model'
 
-const resolveUsers = async (game?: DBGame): Promise<Game | undefined> => {
-	if (game === undefined) return undefined
+const resolveUsers = async (session?: DBSession): Promise<Session | undefined> => {
+	if (session === undefined) return undefined
 
-	const owner = await userApi.findById(game.owner)
-	const users = (await Promise.all(game.players.map(async user => (user ? await userApi.findById(user) : undefined)))).filter(
-		user => !!user
-	) as Game['players']
-
-	const watchers = (await Promise.all(game.watchers.map(async ([socketId, userId]) => await userApi.findById(userId)))).filter(
+	const owner = await userApi.findById(session.owner)
+	const watchers = (await Promise.all(session.watchers.map(async ([socketId, userId]) => await userApi.findById(userId)))).filter(
 		(user, index, array) => !!user && array.indexOf(user) === index
-	) as Game['watchers']
-	console.log(watchers)
+	) as Session['watchers']
+
 	return {
-		...game,
+		...session,
 		owner,
-		players: users,
 		watchers
 	}
 }
 
-export const findMany = async (): Promise<Game[]> => {
-	const games = await gameApi.findMany()
-	const promises = games.map(async game => (await resolveUsers(game))!)
+export const findMany = async (): Promise<Session[]> => {
+	const sessions = await sessionApi.findMany()
+	const promises = sessions.map(async session => (await resolveUsers(session))!)
 	return Promise.all(promises)
 }
 
-export const findGameById = async (id: string): Promise<Game | undefined> => {
-	const game = await gameApi.findById(id)
-	return resolveUsers(game)
+export const findSessionById = async (id: string): Promise<Session | undefined> => {
+	const session = await sessionApi.findById(id)
+	return resolveUsers(session)
 }
 
-export const createGame = async (owner: string): Promise<Game | undefined> => {
+export const createSession = async (owner: string): Promise<Session | undefined> => {
 	const userFound = await userApi.findById(owner)
 	if (!userFound) {
 		return
 	}
-	const game = await gameApi.create({ owner })
-	return resolveUsers(game)
+	const session = await sessionApi.create({ owner })
+	return resolveUsers(session)
 }
 
-export const deleteGame = async (gameId: string, ownerId: string): Promise<boolean> => {
-	const game = await gameApi.findById(gameId)
-	if (!game) {
+export const deleteSession = async (sessionId: string, ownerId: string): Promise<boolean> => {
+	const session = await sessionApi.findById(sessionId)
+	if (!session) {
 		return false
 	}
 
@@ -53,39 +48,74 @@ export const deleteGame = async (gameId: string, ownerId: string): Promise<boole
 		return false
 	}
 
-	if (game.owner !== ownerId) return false
+	if (session.owner !== ownerId) return false
 
-	await gameApi.delete({ gameId })
+	await sessionApi.delete({ sessionId })
 	return true
 }
 
-export const addWatcher = async (gameId: string, socketId: string, watcherId: string): Promise<Game | undefined> => {
-	const game = await gameApi.findById(gameId)
-	if (!game) {
+export const addWatcher = async (sessionId: string, socketId: string, watcherId: string): Promise<Session | undefined> => {
+	const session = await sessionApi.findById(sessionId)
+	if (!session) {
 		return
 	}
 
 	const userFound = await userApi.findById(watcherId)
 	if (!userFound) {
-		return resolveUsers(game!)
+		return resolveUsers(session!)
 	}
-	const refreshedGame = await gameApi.addWatcher({
+	const refreshedSession = await sessionApi.addWatcher({
 		socketId: socketId,
 		userId: watcherId,
-		game: gameId
+		session: sessionId
 	})
-	return resolveUsers(refreshedGame!)
+
+	return resolveUsers(refreshedSession!)
 }
 
-export const removeWatcher = async (gameId: string, socketId: string): Promise<Game | undefined> => {
-	const game = await gameApi.findById(gameId)
-	if (!game) {
+export const removeWatcher = async (sessionId: string, socketId: string): Promise<Session | undefined> => {
+	const session = await sessionApi.findById(sessionId)
+	if (!session) {
 		return
 	}
 
-	const refreshedGame = await gameApi.removeWatcher({
+	const refreshedSession = await sessionApi.removeWatcher({
 		socketId,
-		game: gameId
+		session: sessionId
 	})
-	return resolveUsers(refreshedGame!)
+	return resolveUsers(refreshedSession!)
+}
+
+export const addBoard = async (sessionId: string, boardId: string, ownerId: string, type: string): Promise<Session | undefined | false> => {
+	const session = await sessionApi.findById(sessionId)
+	if (!session) return false
+
+	const userFound = await userApi.findById(ownerId)
+	if (!userFound) return false
+
+	if (session.owner !== ownerId) return false
+
+	const refreshedSession = await sessionApi.addBoard({
+		type,
+		boardId,
+		sessionId
+	})
+
+	return resolveUsers(refreshedSession!)
+}
+
+export const removeBoard = async (sessionId: string, boardId: string, ownerId: string): Promise<Session | undefined | false> => {
+	const session = await sessionApi.findById(sessionId)
+	if (!session) return false
+
+	const userFound = await userApi.findById(ownerId)
+	if (!userFound) return false
+
+	if (session.owner !== ownerId) return false
+
+	const refreshedSession = await sessionApi.removeBoard({
+		boardId,
+		sessionId
+	})
+	return resolveUsers(refreshedSession!)
 }

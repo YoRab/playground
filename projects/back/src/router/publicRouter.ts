@@ -2,19 +2,18 @@ import { observable } from '@trpc/server/observable'
 import { z } from 'zod'
 import * as userRepo from '@back/repository/user'
 import * as authRepo from '@back/repository/auth'
-import * as gameRepo from '@back/repository/game'
+import * as sessionRepo from '@back/repository/game'
 import { ee, publicProcedure, router } from '@back/services/trpc'
-import { findMany as findGames } from '@back/repository/game'
-import type { Game } from '@common/model'
+import { findMany as findSessions } from '@back/repository/game'
+import type { Session } from '@common/model'
 import { v4 as uuidv4 } from 'uuid'
+import wordRouter from '@back/router/wordRouter'
+import reactPaintRouter from '@back/router/reactPaintRouter'
+import { chessPublicRouter } from '@back/router/chessRouter'
 
-const REFRESH_GAMES_LIST_EVENTS = ['addNewGame', 'deleteGame']
-const REFRESH_GAME_EVENTS = ['addWatcher', 'removeWatcher']
-const REFRESH_WORD_EVENTS = ['refreshWord']
-const REFRESH_REACT_PAINT = ['refreshReactPaint']
+const REFRESH_SESSIONS_LIST_EVENTS = ['addNewSession', 'deleteSession']
+const REFRESH_SESSION_EVENTS = ['addWatcher', 'removeWatcher', 'addBoard', 'removeBoard']
 
-let WORD = ''
-let REACTPAINT_DATA: unknown = {}
 const publicRouter = router({
 	getMe: publicProcedure.query(opts => {
 		const { ctx } = opts
@@ -26,129 +25,84 @@ const publicRouter = router({
 	login: publicProcedure.input(z.object({ pseudo: z.string() })).mutation(async opts => {
 		return await authRepo.login(opts.input)
 	}),
-	onGetGames: publicProcedure.subscription(() => {
-		return observable<Game[]>(emit => {
-			const onRefreshGames = async () => {
-				console.log('refres')
-				const games = await findGames()
-				emit.next(games)
+	onGetSessions: publicProcedure.subscription(() => {
+		return observable<Session[]>(emit => {
+			const onRefreshSessions = async () => {
+				const sessions = await findSessions()
+				emit.next(sessions)
 			}
 
-			for (const eventName of REFRESH_GAMES_LIST_EVENTS) {
-				ee.on(eventName, onRefreshGames)
+			for (const eventName of REFRESH_SESSIONS_LIST_EVENTS) {
+				ee.on(eventName, onRefreshSessions)
 			}
-			onRefreshGames()
+			onRefreshSessions()
 			return () => {
-				for (const eventName of REFRESH_GAMES_LIST_EVENTS) {
-					ee.off(eventName, onRefreshGames)
+				for (const eventName of REFRESH_SESSIONS_LIST_EVENTS) {
+					ee.off(eventName, onRefreshSessions)
 				}
 			}
 		})
 	}),
 	// TODO move to protected once websocket auth is ready in trpc https://github.com/trpc/trpc/issues/3955
-	watchGame: publicProcedure
+	watchSession: publicProcedure
 		.input(
 			z.object({
-				gameId: z.string(),
+				sessionId: z.string(),
 				userId: z.string().optional()
 			})
 		)
 		.subscription(async opts => {
-			const { gameId, userId } = opts.input
-			const game = await gameRepo.findGameById(gameId)
+			const { sessionId, userId } = opts.input
+			const session = await sessionRepo.findSessionById(sessionId)
 
 			const subTempId = uuidv4()
 
-			return observable<Game>(emit => {
-				const onRefreshGame = async () => {
-					console.log('refresh game')
-					emit.next(game!)
+			return observable<Session>(emit => {
+				const onRefreshSession = async () => {
+					console.log('refreh session')
+					const refreshedSession = await sessionRepo.findSessionById(sessionId)
+					refreshedSession && emit.next(refreshedSession)
 				}
 
+				const events = REFRESH_SESSION_EVENTS.map(eventName => `${eventName}_${sessionId}`)
+
 				const addWatcher = async () => {
-					console.log('addwatcher ', subTempId)
-
-					for (const eventName of REFRESH_GAME_EVENTS) {
-						ee.on(eventName, onRefreshGame)
-					}
-
-					await gameRepo.addWatcher(gameId, subTempId, userId!)
-					ee.emit('addWatcher')
+					await sessionRepo.addWatcher(sessionId, subTempId, userId!)
+					ee.emit(`addWatcher_${sessionId}`)
 				}
 
 				if (!userId) {
 					emit.error('unknown user')
 					return
 				}
-				if (!game) {
-					emit.error('unknown game')
+				if (!session) {
+					emit.error('unknown session')
 					return
 				}
+
+				for (const eventName of events) {
+					ee.on(eventName, onRefreshSession)
+				}
+
 				addWatcher()
 
 				return () => {
 					const removeWatcher = async () => {
-						console.log('remove watcher ', subTempId)
-						await gameRepo.removeWatcher(gameId, subTempId)
-						ee.emit('removeWatcher')
+						await sessionRepo.removeWatcher(sessionId, subTempId)
+						ee.emit(`removeWatcher_${sessionId}`)
 					}
 
-					for (const eventName of REFRESH_GAME_EVENTS) {
-						ee.off(eventName, onRefreshGame)
+					for (const eventName of events) {
+						ee.off(eventName, onRefreshSession)
 					}
 
 					removeWatcher()
 				}
 			})
 		}),
-
-	setWord: publicProcedure.input(z.object({ value: z.string() })).mutation(async opts => {
-		WORD = opts.input.value
-		ee.emit('refreshWord')
-		return true
-	}),
-	onGetWord: publicProcedure.subscription(() => {
-		return observable<string>(emit => {
-			const onRefreshWord = async () => {
-				console.log('onRefreshWord')
-				emit.next(WORD)
-			}
-
-			for (const eventName of REFRESH_WORD_EVENTS) {
-				ee.on(eventName, onRefreshWord)
-			}
-			onRefreshWord()
-			return () => {
-				for (const eventName of REFRESH_WORD_EVENTS) {
-					ee.off(eventName, onRefreshWord)
-				}
-			}
-		})
-	}),
-
-	setPaint: publicProcedure.input(z.object({ value: z.unknown() })).mutation(async opts => {
-		REACTPAINT_DATA = opts.input.value
-		ee.emit('refreshReactPaint')
-		return true
-	}),
-	onGetPaint: publicProcedure.subscription(() => {
-		return observable<unknown>(emit => {
-			const onRefreshPaint = async () => {
-				console.log('onGetPaint')
-				emit.next(REACTPAINT_DATA)
-			}
-
-			for (const eventName of REFRESH_REACT_PAINT) {
-				ee.on(eventName, onRefreshPaint)
-			}
-			onRefreshPaint()
-			return () => {
-				for (const eventName of REFRESH_REACT_PAINT) {
-					ee.off(eventName, onRefreshPaint)
-				}
-			}
-		})
-	})
+	...wordRouter,
+	...reactPaintRouter,
+	...chessPublicRouter
 })
 
 export default publicRouter

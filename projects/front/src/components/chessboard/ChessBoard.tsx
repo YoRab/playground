@@ -1,29 +1,41 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import Cell from './Cell'
 import './ChessBoard.css'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core'
-import { PIECES, PieceType } from '@front/constants/pieces'
 import Piece from './Piece'
-import { getDroppableCells, getInitBoard } from '@front/utils'
-import { moveCell } from '@front/utils/array'
+import { getDroppableCells } from '@front/utils'
+import { trpc } from '@front/utils/trpc'
+import { Session, User } from '@common/model'
+import { ChessGame, PieceType } from '@common/chess'
+import Loading from '@front/components/Loading'
 
-let PLAYER: 0 | 1 = 0
-
-const ChessBoard = () => {
-	const [boardData, setBoardData] = useState<{
-		board: (string | null)[][]
-		pieces: PieceType[]
-	}>({
-		board: getInitBoard(),
-		pieces: PIECES
-	})
-
+const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; gameId: string }) => {
+	const [boardData, setBoardData] = useState<ChessGame>()
 	const [dragDatas, setDragDatas] = useState<{
 		active: PieceType | undefined
 		enabledCells: [number, number][]
 	}>({
 		active: undefined,
 		enabledCells: []
+	})
+
+	trpc.public.watchChessGame.useSubscription(
+		{ gameId },
+		{
+			onData(data) {
+				console.log('received dataaaa !', data)
+				data && setBoardData(data)
+			},
+			onError(err) {
+				console.error('Subscription error:', err)
+			}
+		}
+	)
+
+	const movePieceMutation = trpc.protected.movePiece.useMutation({
+		onSuccess: data => {
+			console.log('piece moved', data)
+		}
 	})
 
 	const handleBoardClick = () => {
@@ -34,8 +46,8 @@ const ChessBoard = () => {
 	}
 
 	const handleDragStart = (event: DragStartEvent) => {
-		const active = boardData.pieces.find(piece => piece.id === event.active.id)
-		if (!active) return
+		const active = boardData?.pieces.find(piece => piece.id === event.active.id)
+		if (!active || !boardData) return
 		setDragDatas({
 			active,
 			enabledCells: getDroppableCells({ boardData, active })
@@ -46,56 +58,29 @@ const ChessBoard = () => {
 		const { over } = event
 		const currentActive = dragDatas.active
 		if (!currentActive || !over) return
-		PLAYER = ((PLAYER + 1) % 2) as 0 | 1
+
 		setDragDatas({
 			active: undefined,
 			enabledCells: []
 		})
-		setBoardData(boardData => ({
-			board: moveCell({
-				board: boardData.board,
-				row: (over.data.current as any).position[0],
-				col: (over.data.current as any).position[1],
-				currentActive
-			}),
-			pieces: boardData.pieces.map(piece => {
-				const move = (over.data.current as any).position as [number, number]
-				if (piece.id === currentActive.id) {
-					return { ...piece, position: move }
-				}
-				if (piece.position?.[0] === move[0] && piece.position?.[1] === move[1]) {
-					return { ...piece, position: null }
-				}
-				return piece
-			})
-		}))
+		movePieceMutation.mutate({ gameId, pieceId: currentActive.id, newPosition: (over.data.current as any).position })
 	}
 
 	const handleDropOnCell = (row: number, col: number) => {
 		const currentActive = dragDatas.active
 		if (!currentActive) return
-		PLAYER = ((PLAYER + 1) % 2) as 0 | 1
+		const newPosition = [row, col] as [number, number]
 
-		setBoardData(boardData => {
-			return {
-				board: moveCell({ board: boardData.board, row, col, currentActive }),
-				pieces: boardData.pieces.map(piece => {
-					const move = [row, col] as [number, number]
-					if (piece.id === currentActive.id) {
-						return { ...piece, position: move }
-					}
-					if (piece.position?.[0] === move[0] && piece.position?.[1] === move[1]) {
-						return { ...piece, position: null }
-					}
-					return piece
-				})
-			}
-		})
 		setDragDatas({
 			active: undefined,
 			enabledCells: []
 		})
+		movePieceMutation.mutate({ gameId, pieceId: currentActive.id, newPosition })
 	}
+
+	const userColor = boardData?.players.white?.id === user.id ? 'white' : boardData?.players.black?.id === user.id ? 'black' : undefined
+
+	if (!boardData) return <Loading />
 	return (
 		<>
 			<DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -119,7 +104,8 @@ const ChessBoard = () => {
 												dropEnabled={dropEnabled}
 												isSelected={isSelected}
 												handleDropOnCell={handleDropOnCell}
-												playing={PLAYER}
+												playerTurn={boardData.playerTurn}
+												userColor={userColor}
 											/>
 										)
 									})}
