@@ -6,6 +6,7 @@
 }
 
 .ChessBoardContainer {
+  position: relative;
   max-width: 800px;
   width: 100%;
 }
@@ -25,6 +26,13 @@
   margin: 16px;
 }
 
+.isBlack .Row {
+  flex-direction: row-reverse;
+}
+
+.isBlack .Board {
+  flex-direction: column-reverse;
+}
 
 .Row {
   display: flex;
@@ -39,4 +47,11 @@
 
 .LostPieces>.Piece {
   width: 48px;
+}
+
+.ChoicePlayers {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }

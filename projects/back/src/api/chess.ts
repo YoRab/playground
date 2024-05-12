@@ -42,15 +42,6 @@ const sessionApi = {
 		games = games.filter(game => game.id !== data.gameId)
 		return true
 	},
-	start: async (data: { gameId: string }) => {
-		const gameIndex = games.findIndex(item => item.id === data.gameId)
-		if (gameIndex < 0) return null
-		games[gameIndex] = {
-			...games[gameIndex],
-			startedAt: Date.now()
-		}
-		return games[gameIndex]
-	},
 	end: async (data: { gameId: string }) => {
 		const gameIndex = games.findIndex(item => item.id === data.gameId)
 		if (gameIndex < 0) return null
@@ -99,6 +90,7 @@ const sessionApi = {
 				}
 				return piece
 			}),
+			startedAt: games[gameIndex].startedAt || Date.now(),
 			history: [...games[gameIndex].history, { move: '', time: Date.now() }]
 		}
 		return games[gameIndex]

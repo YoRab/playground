@@ -47,8 +47,8 @@ const Cell = ({
 			ref={setNodeRef}
 			onClick={handleClick}
 		>
-			{col === 0 && <span className='Rowindicator'>{8 - row}</span>}
-			{row === 7 && <span className='Colindicator'>{COL_KEY[col]}</span>}
+			{col === (userColor === 'black' ? 7 : 0) && <span className='Rowindicator'>{8 - row}</span>}
+			{row === (userColor === 'black' ? 0 : 7) && <span className='Colindicator'>{COL_KEY[col]}</span>}
 			{piece && (
 				<Draggable id={piece.id} disabled={disabled}>
 					<Piece piece={piece} />

@@ -45,22 +45,13 @@ export const chessPublicRouter = {
 }
 
 export const chessProtectedRouter = {
-	startGame: protectedProcedure.input(z.object({ gameId: z.string() })).mutation(async opts => {
+	addPlayer: protectedProcedure.input(z.object({ gameId: z.string(), color: z.enum(['white', 'black']) })).mutation(async opts => {
 		const { user } = opts.ctx
-		const { gameId } = opts.input
-
-		const hasStarted = await chessRepo.startGame(gameId, user!.id)
-		if (hasStarted) ee.emit(`refreshChessGame_${gameId}`)
-		return hasStarted
-	}),
-	addPlayer: protectedProcedure.input(z.object({ gameId: z.string() })).mutation(async opts => {
-		const { user } = opts.ctx
-		const { gameId } = opts.input
+		const { gameId, color } = opts.input
 
 		const game = await chessRepo.findChessById(gameId)
 		if (!game) return false
 
-		const color = game.players.white === undefined ? 'white' : 'black'
 		const refreshedGame = await chessRepo.addPlayer(gameId, color, user!.id)
 		if (refreshedGame) ee.emit(`refreshChessGame_${gameId}`)
 		return refreshedGame

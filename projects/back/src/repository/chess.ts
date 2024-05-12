@@ -56,20 +56,6 @@ export const deleteGame = async (gameId: string, ownerId: string): Promise<boole
 	return true
 }
 
-export const startGame = async (gameId: string, ownerId: string): Promise<boolean> => {
-	const game = await chessApi.findById(gameId)
-	if (!game) return false
-
-	const userFound = await userApi.findById(ownerId)
-	if (!userFound) return false
-
-	if (game.owner !== ownerId) return false
-	if (game.startedAt !== null) return false
-
-	await chessApi.start({ gameId })
-	return true
-}
-
 export const endGame = async (gameId: string, ownerId: string): Promise<boolean> => {
 	const game = await chessApi.findById(gameId)
 	if (!game) return false
@@ -114,7 +100,6 @@ export const movePiece = async (
 	const userFound = await userApi.findById(userId)
 	if (!userFound) return false
 
-	if (game.startedAt === null) return false
 	if (game.endedAt !== null) return false
 
 	const playerColor = game.players.white === userId ? 'white' : game.players.black === userId ? 'black' : false
