@@ -14,8 +14,10 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 	const [dragDatas, setDragDatas] = useState<{
 		active: PieceType | undefined
 		enabledCells: [number, number][]
+		withDropAnim: boolean
 	}>({
 		active: undefined,
+		withDropAnim: true,
 		enabledCells: []
 	})
 
@@ -47,6 +49,7 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 	const handleBoardClick = () => {
 		setDragDatas({
 			active: undefined,
+			withDropAnim: true,
 			enabledCells: []
 		})
 	}
@@ -56,6 +59,7 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 		if (!active || !boardData) return
 		setDragDatas({
 			active,
+			withDropAnim: true,
 			enabledCells: getDroppableCells({ boardData, active })
 		})
 	}
@@ -67,6 +71,7 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 
 		setDragDatas({
 			active: undefined,
+			withDropAnim: false,
 			enabledCells: []
 		})
 		movePieceMutation.mutate({ gameId, pieceId: currentActive.id, newPosition: (over.data.current as any).position })
@@ -79,6 +84,7 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 
 		setDragDatas({
 			active: undefined,
+			withDropAnim: true,
 			enabledCells: []
 		})
 		movePieceMutation.mutate({ gameId, pieceId: currentActive.id, newPosition })
@@ -148,7 +154,9 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 							return <Piece key={piece.id} piece={piece} />
 						})}
 				</div>
-				<DragOverlay className='DragOverlay'>{dragDatas.active && <Piece piece={dragDatas.active} isOverlay={true} />}</DragOverlay>
+				<DragOverlay className='DragOverlay' dropAnimation={dragDatas.withDropAnim ? undefined : null}>
+					{dragDatas.active && <Piece piece={dragDatas.active} isOverlay={true} />}
+				</DragOverlay>
 			</div>
 		</DndContext>
 	)
