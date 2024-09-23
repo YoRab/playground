@@ -5,8 +5,18 @@ import { createWSClient, splitLink, httpBatchLink, wsLink } from '@trpc/client'
 
 // create persistent WebSocket connection
 const wsClient = createWSClient({
-	url: 'ws://localhost:4001'
+	url: 'ws://localhost:4001',
+	connectionParams: async () => {
+		return {
+			token: localStorage.getItem('jwt_token') ?? ''
+		}
+	}
 })
+
+export const reconnectWsClient = () => {
+	wsClient.close()
+	wsClient.reconnect()
+}
 
 const UseTrpc = () => {
 	const [queryClient] = useState(() => new QueryClient())

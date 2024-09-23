@@ -1,17 +1,17 @@
 import { z } from 'zod'
-import { ee, publicProcedure } from '@back/services/trpc'
+import { ee, protectedProcedure } from '@back/services/trpc'
 import { observable } from '@trpc/server/observable'
 
 const REFRESH_WORD_EVENTS = ['refreshWord']
 let WORD = ''
 
 const wordRouter = {
-	setWord: publicProcedure.input(z.object({ value: z.string() })).mutation(async opts => {
+	setWord: protectedProcedure.input(z.object({ value: z.string() })).mutation(async opts => {
 		WORD = opts.input.value
 		ee.emit('refreshWord')
 		return true
 	}),
-	onGetWord: publicProcedure.subscription(() => {
+	onGetWord: protectedProcedure.subscription(() => {
 		return observable<string>(emit => {
 			const onRefreshWord = async () => {
 				console.log('onRefreshWord')

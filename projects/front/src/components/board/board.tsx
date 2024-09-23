@@ -56,8 +56,8 @@ const Board = () => {
 
 	const [sessionId] = getPathParams()
 
-	trpc.public.watchSession.useSubscription(
-		{ sessionId, userId: user?.id },
+	trpc.protected.watchSession.useSubscription(
+		{ sessionId },
 		{
 			onData(data) {
 				console.log('received dataaaa !')

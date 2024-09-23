@@ -21,7 +21,7 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 		enabledCells: []
 	})
 
-	trpc.public.watchChessGame.useSubscription(
+	trpc.protected.watchChessGame.useSubscription(
 		{ gameId },
 		{
 			onData(data) {

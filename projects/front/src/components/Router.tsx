@@ -55,6 +55,8 @@ const Router = () => {
 	const isLoading = userQuery.isLoading
 	const user = userQuery.data
 	const isAuthed = !!user
+	const needRedirection = !(getPathRoute() in PATHS) || !PATHS[getPathRoute() as keyof typeof PATHS]?.[isAuthed ? 'private' : 'public']
+
 	const onRouteChanged = useCallback(() => {
 		const defaultPath = isAuthed ? 'home' : 'login'
 
@@ -75,7 +77,7 @@ const Router = () => {
 		}
 	}, [isLoading, onRouteChanged])
 
-	return isLoading ? <Loading /> : PATHS[path as keyof typeof PATHS]?.elements ?? null
+	return isLoading ? <Loading /> : (!needRedirection && PATHS[path as keyof typeof PATHS]?.elements) ?? null
 }
 
 export default Router

@@ -1,13 +1,13 @@
 import { z } from 'zod'
-import { ee, publicProcedure, protectedProcedure } from '@back/services/trpc'
+import { ee, protectedProcedure } from '@back/services/trpc'
 import { observable } from '@trpc/server/observable'
 import { ChessGame } from '@common/chess'
 import * as chessRepo from '@back/repository/chess'
 
 const REFRESH_GAME_EVENTS = ['refreshChessGame']
 
-export const chessPublicRouter = {
-	watchChessGame: publicProcedure
+export const chessRouter = {
+	watchChessGame: protectedProcedure
 		.input(
 			z.object({
 				gameId: z.string()
@@ -41,10 +41,7 @@ export const chessPublicRouter = {
 					}
 				}
 			})
-		})
-}
-
-export const chessProtectedRouter = {
+		}),
 	addPlayer: protectedProcedure.input(z.object({ gameId: z.string(), color: z.enum(['white', 'black']) })).mutation(async opts => {
 		const { user } = opts.ctx
 		const { gameId, color } = opts.input
