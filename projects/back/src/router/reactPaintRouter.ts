@@ -1,34 +1,56 @@
 import { z } from 'zod'
 import { ee, protectedProcedure } from '@back/services/trpc'
 import { observable } from '@trpc/server/observable'
+import * as reactPaintRepo from '@back/repository/reactPaint'
+import { ReactPaint } from '@common/reactPaint'
 
 const REFRESH_REACT_PAINT = ['refreshReactPaint']
-let REACTPAINT_DATA: unknown = {}
 
 const reactPaintRouter = {
-	setPaint: protectedProcedure.input(z.object({ value: z.unknown() })).mutation(async opts => {
-		REACTPAINT_DATA = opts.input.value
-		ee.emit('refreshReactPaint')
-		return true
-	}),
-	onGetPaint: protectedProcedure.subscription(() => {
-		return observable<unknown>(emit => {
-			const onRefreshPaint = async () => {
-				console.log('onGetPaint')
-				emit.next(REACTPAINT_DATA)
-			}
+	setPaint: protectedProcedure.input(z.object({ boardId: z.string(), value: z.unknown() })).mutation(async opts => {
+		const { user } = opts.ctx
+		const { boardId, value } = opts.input
+		const board = await reactPaintRepo.findReactPaintById(boardId)
+		if (!board) return false
 
-			for (const eventName of REFRESH_REACT_PAINT) {
-				ee.on(eventName, onRefreshPaint)
-			}
-			onRefreshPaint()
-			return () => {
-				for (const eventName of REFRESH_REACT_PAINT) {
-					ee.off(eventName, onRefreshPaint)
+		const refreshedPaint = await reactPaintRepo.editReactPaint(boardId, user!.id, value)
+		refreshedPaint && ee.emit(`refreshReactPaint_${boardId}`)
+		return refreshedPaint
+	}),
+	watchPaint: protectedProcedure
+		.input(
+			z.object({
+				boardId: z.string()
+			})
+		)
+		.subscription(async opts => {
+			const { boardId } = opts.input
+			const board = await reactPaintRepo.findReactPaintById(boardId)
+
+			return observable<ReactPaint>(emit => {
+				const onRefreshPaint = async () => {
+					const board = await reactPaintRepo.findReactPaintById(boardId)
+					board && emit.next(board)
 				}
-			}
+
+				if (!board) {
+					emit.error('unknown board')
+					return
+				}
+
+				const events = REFRESH_REACT_PAINT.map(eventName => `${eventName}_${boardId}`)
+
+				for (const eventName of events) {
+					ee.on(eventName, onRefreshPaint)
+				}
+				onRefreshPaint()
+				return () => {
+					for (const eventName of events) {
+						ee.off(eventName, onRefreshPaint)
+					}
+				}
+			})
 		})
-	})
 }
 
 export default reactPaintRouter

@@ -5,17 +5,18 @@ import Login from './login/Login'
 import { trpc } from '@front/utils/trpc'
 import Loading from './Loading'
 import { getPathRoute } from '@front/utils/path'
-import Word from './word/word'
-import Paint from './reactPaint/paint'
 import '@yorab/react-paint/react-paint.css'
 import Footer from './Footer'
 import Board from '@front/components/board/board'
+import './Router.css'
 
 const WithToolbar = ({ Component, name }: { Component: () => JSX.Element; name: string }) => {
 	return (
 		<>
 			<Toolbar screen={name} />
-			<Component />
+			<section className='main'>
+				<Component />
+			</section>
 			<Footer />
 		</>
 	)
@@ -36,16 +37,6 @@ const PATHS = {
 		elements: <WithToolbar Component={Login} name='Login' />,
 		private: false,
 		public: true
-	},
-	word: {
-		elements: <WithToolbar Component={Word} name='Word' />,
-		private: true,
-		public: false
-	},
-	paint: {
-		elements: <WithToolbar Component={Paint} name='Paint' />,
-		private: true,
-		public: false
 	}
 }
 
@@ -77,7 +68,7 @@ const Router = () => {
 		}
 	}, [isLoading, onRouteChanged])
 
-	return isLoading ? <Loading /> : (!needRedirection && PATHS[path as keyof typeof PATHS]?.elements) ?? null
+	return isLoading ? <Loading /> : (!needRedirection && PATHS[path as keyof typeof PATHS]?.elements) || null
 }
 
 export default Router

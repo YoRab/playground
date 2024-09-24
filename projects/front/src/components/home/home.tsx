@@ -4,7 +4,6 @@ import { trpc } from '@front/utils/trpc'
 import type { Session } from '@common/model'
 
 const Home = () => {
-	const [showNewGame, setShowNewGame] = useState(false)
 	const [games, setGames] = useState<Session[]>([])
 
 	const userQuery = trpc.public.getMe.useQuery()
@@ -34,41 +33,19 @@ const Home = () => {
 	})
 
 	const addNewGame = () => {
-		setShowNewGame(false)
-		addNewGameMutation.mutate({})
+		addNewGameMutation.mutate()
 	}
 
-	const deleteGame = (gameId: string) => {
-		deleteGameMutation.mutate({ game: gameId })
+	const deleteGame = (boardId: string) => {
+		deleteGameMutation.mutate({ game: boardId })
 	}
 
 	return (
 		<section className='section'>
 			<h1 className='title'>Sessions actives</h1>
-			<button type='button' className='button' onClick={() => setShowNewGame(true)}>
+			<button type='button' className='button' onClick={addNewGame}>
 				Nouveau
 			</button>
-			<div className={`modal ${showNewGame ? ' is-active' : ''}`}>
-				<div className='modal-background' onClick={() => setShowNewGame(false)} />
-				<div className='modal-card'>
-					<header className='modal-card-head'>
-						<p className='modal-card-title'>Créer une nouvelle session</p>
-						<button type='button' className='delete' aria-label='close' onClick={() => setShowNewGame(false)} />
-					</header>
-					<section className='modal-card-body'>TODO</section>
-					<footer className='modal-card-foot'>
-						<div className='buttons'>
-							<button type='button' className='button is-success' onClick={addNewGame}>
-								Créer
-							</button>
-							<button type='button' className='button' onClick={() => setShowNewGame(false)}>
-								Cancel
-							</button>
-						</div>
-					</footer>
-				</div>
-			</div>
-
 			<div>
 				{games?.map(game => {
 					return (

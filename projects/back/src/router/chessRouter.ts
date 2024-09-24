@@ -10,16 +10,16 @@ export const chessRouter = {
 	watchChessGame: protectedProcedure
 		.input(
 			z.object({
-				gameId: z.string()
+				boardId: z.string()
 			})
 		)
 		.subscription(async opts => {
-			const { gameId } = opts.input
-			const game = await chessRepo.findChessById(gameId)
+			const { boardId } = opts.input
+			const game = await chessRepo.findChessById(boardId)
 
 			return observable<ChessGame>(emit => {
 				const onRefreshGame = async () => {
-					const refreshedGame = await chessRepo.findChessById(gameId)
+					const refreshedGame = await chessRepo.findChessById(boardId)
 					refreshedGame && emit.next(refreshedGame)
 				}
 
@@ -28,7 +28,7 @@ export const chessRouter = {
 					return
 				}
 
-				const events = REFRESH_GAME_EVENTS.map(eventName => `${eventName}_${gameId}`)
+				const events = REFRESH_GAME_EVENTS.map(eventName => `${eventName}_${boardId}`)
 
 				for (const eventName of events) {
 					ee.on(eventName, onRefreshGame)
@@ -42,28 +42,28 @@ export const chessRouter = {
 				}
 			})
 		}),
-	addPlayer: protectedProcedure.input(z.object({ gameId: z.string(), color: z.enum(['white', 'black']) })).mutation(async opts => {
+	addPlayer: protectedProcedure.input(z.object({ boardId: z.string(), color: z.enum(['white', 'black']) })).mutation(async opts => {
 		const { user } = opts.ctx
-		const { gameId, color } = opts.input
+		const { boardId, color } = opts.input
 
-		const game = await chessRepo.findChessById(gameId)
+		const game = await chessRepo.findChessById(boardId)
 		if (!game) return false
 
-		const refreshedGame = await chessRepo.addPlayer(gameId, color, user!.id)
-		if (refreshedGame) ee.emit(`refreshChessGame_${gameId}`)
+		const refreshedGame = await chessRepo.addPlayer(boardId, color, user!.id)
+		if (refreshedGame) ee.emit(`refreshChessGame_${boardId}`)
 		return refreshedGame
 	}),
 	movePiece: protectedProcedure
-		.input(z.object({ gameId: z.string(), pieceId: z.string(), newPosition: z.tuple([z.number(), z.number()]) }))
+		.input(z.object({ boardId: z.string(), pieceId: z.string(), newPosition: z.tuple([z.number(), z.number()]) }))
 		.mutation(async opts => {
 			const { user } = opts.ctx
-			const { gameId, pieceId, newPosition } = opts.input
+			const { boardId, pieceId, newPosition } = opts.input
 
-			const game = await chessRepo.findChessById(gameId)
+			const game = await chessRepo.findChessById(boardId)
 			if (!game) return false
 
-			const refreshedGame = await chessRepo.movePiece(gameId, user!.id, pieceId, newPosition)
-			if (refreshedGame) ee.emit(`refreshChessGame_${gameId}`)
+			const refreshedGame = await chessRepo.movePiece(boardId, user!.id, pieceId, newPosition)
+			if (refreshedGame) ee.emit(`refreshChessGame_${boardId}`)
 			return refreshedGame
 		})
 }

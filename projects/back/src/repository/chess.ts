@@ -39,8 +39,8 @@ export const createGame = async (owner: string, sessionId: string): Promise<Ches
 	return resolveUsers(game)
 }
 
-export const deleteGame = async (gameId: string, ownerId: string): Promise<boolean> => {
-	const game = await chessApi.findById(gameId)
+export const deleteGame = async (boardId: string, ownerId: string): Promise<boolean> => {
+	const game = await chessApi.findById(boardId)
 	if (!game) {
 		return false
 	}
@@ -52,12 +52,12 @@ export const deleteGame = async (gameId: string, ownerId: string): Promise<boole
 
 	if (game.owner !== ownerId) return false
 
-	await chessApi.delete({ gameId })
+	await chessApi.delete({ boardId: boardId })
 	return true
 }
 
-export const endGame = async (gameId: string, ownerId: string): Promise<boolean> => {
-	const game = await chessApi.findById(gameId)
+export const endGame = async (boardId: string, ownerId: string): Promise<boolean> => {
+	const game = await chessApi.findById(boardId)
 	if (!game) return false
 
 	const userFound = await userApi.findById(ownerId)
@@ -66,12 +66,12 @@ export const endGame = async (gameId: string, ownerId: string): Promise<boolean>
 	if (game.startedAt === null) return false
 	if (game.endedAt !== null) return false
 
-	await chessApi.end({ gameId })
+	await chessApi.end({ boardId })
 	return true
 }
 
-export const addPlayer = async (gameId: string, color: 'white' | 'black', userId: string): Promise<ChessGame | false> => {
-	const game = await chessApi.findById(gameId)
+export const addPlayer = async (boardId: string, color: 'white' | 'black', userId: string): Promise<ChessGame | false> => {
+	const game = await chessApi.findById(boardId)
 	if (!game) return false
 
 	const userFound = await userApi.findById(userId)
@@ -81,7 +81,7 @@ export const addPlayer = async (gameId: string, color: 'white' | 'black', userId
 	if (game.players[color === 'white' ? 'black' : 'white'] === userId) return false
 
 	const refreshedGame = await chessApi.addPlayer({
-		gameId,
+		boardId,
 		userId,
 		color
 	})
@@ -89,12 +89,12 @@ export const addPlayer = async (gameId: string, color: 'white' | 'black', userId
 }
 
 export const movePiece = async (
-	gameId: string,
+	boardId: string,
 	userId: string,
 	pieceId: PieceType['id'],
 	newPosition: [number, number]
 ): Promise<ChessGame | false> => {
-	const game = await chessApi.findById(gameId)
+	const game = await chessApi.findById(boardId)
 	if (!game) return false
 
 	const userFound = await userApi.findById(userId)
@@ -117,7 +117,7 @@ export const movePiece = async (
 
 	const refreshedGame = await chessApi.movePiece({
 		playerColor,
-		gameId,
+		boardId: boardId,
 		piece,
 		newPosition
 	})

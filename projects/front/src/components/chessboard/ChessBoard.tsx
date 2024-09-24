@@ -9,7 +9,7 @@ import { Session, User } from '@common/model'
 import { ChessGame, PieceType } from '@common/chess'
 import Loading from '@front/components/Loading'
 
-const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; gameId: string }) => {
+const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; boardId: string }) => {
 	const [boardData, setBoardData] = useState<ChessGame>()
 	const [dragDatas, setDragDatas] = useState<{
 		active: PieceType | undefined
@@ -22,7 +22,7 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 	})
 
 	trpc.protected.watchChessGame.useSubscription(
-		{ gameId },
+		{ boardId },
 		{
 			onData(data) {
 				console.log('received dataaaa !', data)
@@ -74,7 +74,7 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 			withDropAnim: false,
 			enabledCells: []
 		})
-		movePieceMutation.mutate({ gameId, pieceId: currentActive.id, newPosition: (over.data.current as any).position })
+		movePieceMutation.mutate({ boardId, pieceId: currentActive.id, newPosition: (over.data.current as any).position })
 	}
 
 	const handleDropOnCell = (row: number, col: number) => {
@@ -87,11 +87,11 @@ const ChessBoard = ({ user, session, gameId }: { user: User; session: Session; g
 			withDropAnim: true,
 			enabledCells: []
 		})
-		movePieceMutation.mutate({ gameId, pieceId: currentActive.id, newPosition })
+		movePieceMutation.mutate({ boardId, pieceId: currentActive.id, newPosition })
 	}
 
 	const onJoinGame = (color: 'white' | 'black') => {
-		addPlayerMutation.mutate({ gameId, color })
+		addPlayerMutation.mutate({ boardId, color })
 	}
 
 	const userColor = boardData?.players.white?.id === user.id ? 'white' : boardData?.players.black?.id === user.id ? 'black' : undefined

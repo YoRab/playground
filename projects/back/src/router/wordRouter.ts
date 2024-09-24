@@ -1,34 +1,57 @@
 import { z } from 'zod'
 import { ee, protectedProcedure } from '@back/services/trpc'
 import { observable } from '@trpc/server/observable'
+import * as wordRepo from '@back/repository/word'
+import { Word } from '@common/word'
 
 const REFRESH_WORD_EVENTS = ['refreshWord']
-let WORD = ''
 
 const wordRouter = {
-	setWord: protectedProcedure.input(z.object({ value: z.string() })).mutation(async opts => {
-		WORD = opts.input.value
-		ee.emit('refreshWord')
-		return true
-	}),
-	onGetWord: protectedProcedure.subscription(() => {
-		return observable<string>(emit => {
-			const onRefreshWord = async () => {
-				console.log('onRefreshWord')
-				emit.next(WORD)
-			}
+	setWord: protectedProcedure.input(z.object({ wordId: z.string(), value: z.string() })).mutation(async opts => {
+		const { user } = opts.ctx
+		const { wordId, value } = opts.input
+		const word = await wordRepo.findWordById(wordId)
+		if (!word) return false
 
-			for (const eventName of REFRESH_WORD_EVENTS) {
-				ee.on(eventName, onRefreshWord)
-			}
-			onRefreshWord()
-			return () => {
-				for (const eventName of REFRESH_WORD_EVENTS) {
-					ee.off(eventName, onRefreshWord)
+		const refreshedWord = await wordRepo.editWord(wordId, user!.id, value)
+		refreshedWord && ee.emit(`refreshWord_${wordId}`)
+		return refreshedWord
+	}),
+	watchWord: protectedProcedure
+		.input(
+			z.object({
+				wordId: z.string()
+			})
+		)
+		.subscription(async opts => {
+			const { wordId } = opts.input
+			const word = await wordRepo.findWordById(wordId)
+
+			return observable<Word>(emit => {
+				const onRefreshWord = async () => {
+					const refreshedWord = await wordRepo.findWordById(wordId)
+					refreshedWord && emit.next(refreshedWord)
 				}
-			}
+
+				if (!word) {
+					emit.error('unknown word')
+					return
+				}
+
+				const events = REFRESH_WORD_EVENTS.map(eventName => `${eventName}_${wordId}`)
+
+				for (const eventName of events) {
+					ee.on(eventName, onRefreshWord)
+				}
+				onRefreshWord()
+
+				return () => {
+					for (const eventName of events) {
+						ee.off(eventName, onRefreshWord)
+					}
+				}
+			})
 		})
-	})
 }
 
 export default wordRouter

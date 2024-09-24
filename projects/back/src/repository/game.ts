@@ -1,4 +1,4 @@
-import sessionApi, { DBSession } from '@back/api/game'
+import gameApi, { DBSession } from '@back/api/game'
 import userApi from '@back/api/user'
 import type { Session } from '@common/model'
 
@@ -18,13 +18,13 @@ const resolveUsers = async (session?: DBSession): Promise<Session | undefined> =
 }
 
 export const findMany = async (): Promise<Session[]> => {
-	const sessions = await sessionApi.findMany()
+	const sessions = await gameApi.findMany()
 	const promises = sessions.map(async session => (await resolveUsers(session))!)
 	return Promise.all(promises)
 }
 
 export const findSessionById = async (id: string): Promise<Session | undefined> => {
-	const session = await sessionApi.findById(id)
+	const session = await gameApi.findById(id)
 	return resolveUsers(session)
 }
 
@@ -33,12 +33,12 @@ export const createSession = async (owner: string): Promise<Session | undefined>
 	if (!userFound) {
 		return
 	}
-	const session = await sessionApi.create({ owner })
+	const session = await gameApi.create({ owner })
 	return resolveUsers(session)
 }
 
 export const deleteSession = async (sessionId: string, ownerId: string): Promise<boolean> => {
-	const session = await sessionApi.findById(sessionId)
+	const session = await gameApi.findById(sessionId)
 	if (!session) {
 		return false
 	}
@@ -50,12 +50,12 @@ export const deleteSession = async (sessionId: string, ownerId: string): Promise
 
 	if (session.owner !== ownerId) return false
 
-	await sessionApi.delete({ sessionId })
+	await gameApi.delete({ sessionId })
 	return true
 }
 
 export const addWatcher = async (sessionId: string, socketId: string, watcherId: string): Promise<Session | undefined> => {
-	const session = await sessionApi.findById(sessionId)
+	const session = await gameApi.findById(sessionId)
 	if (!session) {
 		return
 	}
@@ -64,7 +64,7 @@ export const addWatcher = async (sessionId: string, socketId: string, watcherId:
 	if (!userFound) {
 		return resolveUsers(session!)
 	}
-	const refreshedSession = await sessionApi.addWatcher({
+	const refreshedSession = await gameApi.addWatcher({
 		socketId: socketId,
 		userId: watcherId,
 		session: sessionId
@@ -74,12 +74,12 @@ export const addWatcher = async (sessionId: string, socketId: string, watcherId:
 }
 
 export const removeWatcher = async (sessionId: string, socketId: string): Promise<Session | undefined> => {
-	const session = await sessionApi.findById(sessionId)
+	const session = await gameApi.findById(sessionId)
 	if (!session) {
 		return
 	}
 
-	const refreshedSession = await sessionApi.removeWatcher({
+	const refreshedSession = await gameApi.removeWatcher({
 		socketId,
 		session: sessionId
 	})
@@ -87,7 +87,7 @@ export const removeWatcher = async (sessionId: string, socketId: string): Promis
 }
 
 export const addBoard = async (sessionId: string, boardId: string, ownerId: string, type: string): Promise<Session | undefined | false> => {
-	const session = await sessionApi.findById(sessionId)
+	const session = await gameApi.findById(sessionId)
 	if (!session) return false
 
 	const userFound = await userApi.findById(ownerId)
@@ -95,7 +95,7 @@ export const addBoard = async (sessionId: string, boardId: string, ownerId: stri
 
 	if (session.owner !== ownerId) return false
 
-	const refreshedSession = await sessionApi.addBoard({
+	const refreshedSession = await gameApi.addBoard({
 		type,
 		boardId,
 		sessionId
@@ -105,7 +105,7 @@ export const addBoard = async (sessionId: string, boardId: string, ownerId: stri
 }
 
 export const removeBoard = async (sessionId: string, boardId: string, ownerId: string): Promise<Session | undefined | false> => {
-	const session = await sessionApi.findById(sessionId)
+	const session = await gameApi.findById(sessionId)
 	if (!session) return false
 
 	const userFound = await userApi.findById(ownerId)
@@ -113,7 +113,7 @@ export const removeBoard = async (sessionId: string, boardId: string, ownerId: s
 
 	if (session.owner !== ownerId) return false
 
-	const refreshedSession = await sessionApi.removeBoard({
+	const refreshedSession = await gameApi.removeBoard({
 		boardId,
 		sessionId
 	})

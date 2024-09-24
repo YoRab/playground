@@ -17,7 +17,7 @@ export type DBChess = {
 
 let games: DBChess[] = []
 
-const sessionApi = {
+const chessApi = {
 	findMany: async () => games,
 
 	findById: async (id: string) => games.find(game => game.id === id),
@@ -38,12 +38,12 @@ const sessionApi = {
 		games.push(game)
 		return game
 	},
-	delete: async (data: { gameId: string }) => {
-		games = games.filter(game => game.id !== data.gameId)
+	delete: async (data: { boardId: string }) => {
+		games = games.filter(game => game.id !== data.boardId)
 		return true
 	},
-	end: async (data: { gameId: string }) => {
-		const gameIndex = games.findIndex(item => item.id === data.gameId)
+	end: async (data: { boardId: string }) => {
+		const gameIndex = games.findIndex(item => item.id === data.boardId)
 		if (gameIndex < 0) return null
 		games[gameIndex] = {
 			...games[gameIndex],
@@ -51,8 +51,8 @@ const sessionApi = {
 		}
 		return games[gameIndex]
 	},
-	addPlayer: async (data: { userId: string; gameId: string; color: 'white' | 'black' }) => {
-		const gameIndex = games.findIndex(item => item.id === data.gameId)
+	addPlayer: async (data: { userId: string; boardId: string; color: 'white' | 'black' }) => {
+		const gameIndex = games.findIndex(item => item.id === data.boardId)
 
 		if (gameIndex < 0) return null
 
@@ -65,11 +65,11 @@ const sessionApi = {
 
 	movePiece: async (data: {
 		playerColor: 'white' | 'black'
-		gameId: string
+		boardId: string
 		piece: Pick<PieceType, 'id' | 'position'>
 		newPosition: [number, number]
 	}) => {
-		const gameIndex = games.findIndex(item => item.id === data.gameId)
+		const gameIndex = games.findIndex(item => item.id === data.boardId)
 
 		if (gameIndex < 0) return null
 
@@ -97,4 +97,4 @@ const sessionApi = {
 	}
 }
 
-export default sessionApi
+export default chessApi

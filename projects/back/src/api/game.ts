@@ -10,7 +10,7 @@ export type DBSession = {
 
 let sessions: DBSession[] = []
 
-const sessionApi = {
+const gameApi = {
 	findMany: async () => sessions,
 
 	findById: async (id: string) => sessions.find(session => session.id === id),
@@ -76,4 +76,4 @@ const sessionApi = {
 	}
 }
 
-export default sessionApi
+export default gameApi
