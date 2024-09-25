@@ -1,14 +1,14 @@
 {
-	"compilerOptions": {
-	  "target": "es2020", /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-	  "module": "commonjs",
-	  "paths": {
-		"@common/*": ["../common/src/*"],
-		"@back/*": ["./src/*"]
-	},
-	"strict": true,
-	"esModuleInterop": true,
-	  "outDir": "./dist", /* Specify an output folder for all emitted files. */
-	  "skipLibCheck": true /* Skip type checking all .d.ts files. */
-	}
+  "compilerOptions": {
+    "target": "es2020" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "module": "commonjs",
+    "paths": {
+      "@common/*": ["../common/src/*"],
+      "@back/*": ["./src/*"]
+    },
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "./dist" /* Specify an output folder for all emitted files. */,
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */
   }
+}

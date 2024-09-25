@@ -1,4 +1,3 @@
-
 export const redirect = (hash: string) => {
-    window.history.pushState(null, '', hash);
+  window.history.pushState(null, '', hash)
 }

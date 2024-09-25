@@ -1,6 +1,6 @@
-import { initTRPC, TRPCError } from '@trpc/server'
-import { type Context } from './context'
-import { EventEmitter } from 'events'
+import { EventEmitter } from 'node:events'
+import { TRPCError, initTRPC } from '@trpc/server'
+import type { Context } from './context'
 
 /**
  * Initialization of tRPC backend
@@ -16,11 +16,11 @@ export const router = t.router
 export const publicProcedure = t.procedure
 
 const isAuthed = t.middleware(opts => {
-	const { ctx } = opts
-	if (!ctx.user) {
-		throw new TRPCError({ code: 'UNAUTHORIZED' })
-	}
-	return opts.next()
+  const { ctx } = opts
+  if (!ctx.user) {
+    throw new TRPCError({ code: 'UNAUTHORIZED' })
+  }
+  return opts.next()
 })
 export const protectedProcedure = t.procedure.use(isAuthed)
 

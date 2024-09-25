@@ -1,22 +1,25 @@
 {
-	"name": "playground",
-	"version": "1.0.0",
-	"description": "",
-	"main": "index.js",
-	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "concurrently --kill-others \"npm run start:server\" \"npm run start:client\"",
-		"start:client": "npm run start -w front",
-		"start:server": "npm run start:dev -w back",
-		"build": "npm run build:common && npm run build:client && npm:run build:server",
-		"build:client": "npm run build -w front",
-		"build:common": "npm run build -w common",
-		"build:server": "npm run build -w back"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "1.5.3"
-	},
-	"author": "",
-	"license": "ISC",
-	"workspaces": ["./projects/*"]
+  "name": "playground",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Yohann Rabatel",
+  "main": "index.js",
+  "license": "ISC",
+  "workspaces": ["./projects/*"],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently --kill-others \"npm run start:server\" \"npm run start:client\"",
+    "start:client": "npm run start -w front",
+    "start:server": "npm run start:dev -w back",
+    "build": "npm run build:common && npm run build:client && npm:run build:server",
+    "build:client": "npm run build -w front",
+    "build:common": "npm run build -w common",
+    "build:server": "npm run build -w back",
+    "lint": "biome check --write projects/back/src projects/front/src projects/common/src"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.2",
+    "@types/node": "22.7.0",
+    "typescript": "5.6.2"
+  }
 }

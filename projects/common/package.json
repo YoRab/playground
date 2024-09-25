@@ -1,18 +1,14 @@
 {
-	"name": "common",
-	"version": "1.0.0",
-	"description": "",
-	"main": "index.js",
-	"scripts": {
-		"build": "tsc -p .",
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"author": "",
-	"license": "ISC",
-	"devDependencies": {
-		"@types/node": "18.11.18",
-		"typescript": "5.0.4"
-	},
-	"dependencies": {},
-	"types": "dist/index.d.ts"
+  "name": "common",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "types": "dist/index.d.ts"
 }

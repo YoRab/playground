@@ -1,165 +1,166 @@
 import React, { useState } from 'react'
 import Cell from './Cell'
 import './ChessBoard.css'
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core'
-import Piece from './Piece'
+import type { ChessGame, PieceType } from '@common/chess'
+import type { Session, User } from '@common/model'
+import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent } from '@dnd-kit/core'
+import Loading from '@front/components/Loading'
 import { getDroppableCells } from '@front/utils'
 import { trpc } from '@front/utils/trpc'
-import { Session, User } from '@common/model'
-import { ChessGame, PieceType } from '@common/chess'
-import Loading from '@front/components/Loading'
+import Piece from './Piece'
 
 const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; boardId: string }) => {
-	const [boardData, setBoardData] = useState<ChessGame>()
-	const [dragDatas, setDragDatas] = useState<{
-		active: PieceType | undefined
-		enabledCells: [number, number][]
-		withDropAnim: boolean
-	}>({
-		active: undefined,
-		withDropAnim: true,
-		enabledCells: []
-	})
+  const [boardData, setBoardData] = useState<ChessGame>()
+  const [dragDatas, setDragDatas] = useState<{
+    active: PieceType | undefined
+    enabledCells: [number, number][]
+    withDropAnim: boolean
+  }>({
+    active: undefined,
+    withDropAnim: true,
+    enabledCells: []
+  })
 
-	trpc.protected.watchChessGame.useSubscription(
-		{ boardId },
-		{
-			onData(data) {
-				console.log('received dataaaa !', data)
-				data && setBoardData(data)
-			},
-			onError(err) {
-				console.error('Subscription error:', err)
-			}
-		}
-	)
+  trpc.protected.watchChessGame.useSubscription(
+    { boardId },
+    {
+      onData(data) {
+        console.log('received dataaaa !', data)
+        data && setBoardData(data)
+      },
+      onError(err) {
+        console.error('Subscription error:', err)
+      }
+    }
+  )
 
-	const movePieceMutation = trpc.protected.movePiece.useMutation({
-		onSuccess: data => {
-			console.log('piece moved', data)
-		}
-	})
+  const movePieceMutation = trpc.protected.movePiece.useMutation({
+    onSuccess: data => {
+      console.log('piece moved', data)
+    }
+  })
 
-	const addPlayerMutation = trpc.protected.addPlayer.useMutation({
-		onSuccess: data => {
-			console.log('addPlayer', data)
-		}
-	})
+  const addPlayerMutation = trpc.protected.addPlayer.useMutation({
+    onSuccess: data => {
+      console.log('addPlayer', data)
+    }
+  })
 
-	const handleBoardClick = () => {
-		setDragDatas({
-			active: undefined,
-			withDropAnim: true,
-			enabledCells: []
-		})
-	}
+  const handleBoardClick = () => {
+    setDragDatas({
+      active: undefined,
+      withDropAnim: true,
+      enabledCells: []
+    })
+  }
 
-	const handleDragStart = (event: DragStartEvent) => {
-		const active = boardData?.pieces.find(piece => piece.id === event.active.id)
-		if (!active || !boardData) return
-		setDragDatas({
-			active,
-			withDropAnim: true,
-			enabledCells: getDroppableCells({ boardData, active })
-		})
-	}
+  const handleDragStart = (event: DragStartEvent) => {
+    const active = boardData?.pieces.find(piece => piece.id === event.active.id)
+    if (!active || !boardData) return
+    setDragDatas({
+      active,
+      withDropAnim: true,
+      enabledCells: getDroppableCells({ boardData, active })
+    })
+  }
 
-	const handleDragEnd = (event: DragEndEvent) => {
-		const { over } = event
-		const currentActive = dragDatas.active
-		if (!currentActive || !over) return
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { over } = event
+    const currentActive = dragDatas.active
+    if (!currentActive || !over) return
 
-		setDragDatas({
-			active: undefined,
-			withDropAnim: false,
-			enabledCells: []
-		})
-		movePieceMutation.mutate({ boardId, pieceId: currentActive.id, newPosition: (over.data.current as any).position })
-	}
+    setDragDatas({
+      active: undefined,
+      withDropAnim: false,
+      enabledCells: []
+    })
+    movePieceMutation.mutate({ boardId, pieceId: currentActive.id, newPosition: (over.data.current as any).position })
+  }
 
-	const handleDropOnCell = (row: number, col: number) => {
-		const currentActive = dragDatas.active
-		if (!currentActive) return
-		const newPosition = [row, col] as [number, number]
+  const handleDropOnCell = (row: number, col: number) => {
+    const currentActive = dragDatas.active
+    if (!currentActive) return
+    const newPosition = [row, col] as [number, number]
 
-		setDragDatas({
-			active: undefined,
-			withDropAnim: true,
-			enabledCells: []
-		})
-		movePieceMutation.mutate({ boardId, pieceId: currentActive.id, newPosition })
-	}
+    setDragDatas({
+      active: undefined,
+      withDropAnim: true,
+      enabledCells: []
+    })
+    movePieceMutation.mutate({ boardId, pieceId: currentActive.id, newPosition })
+  }
 
-	const onJoinGame = (color: 'white' | 'black') => {
-		addPlayerMutation.mutate({ boardId, color })
-	}
+  const onJoinGame = (color: 'white' | 'black') => {
+    addPlayerMutation.mutate({ boardId, color })
+  }
 
-	const userColor = boardData?.players.white?.id === user.id ? 'white' : boardData?.players.black?.id === user.id ? 'black' : undefined
+  const userColor = boardData?.players.white?.id === user.id ? 'white' : boardData?.players.black?.id === user.id ? 'black' : undefined
 
-	const needPlayer = boardData?.players.white === undefined || boardData?.players.black === undefined
+  const needPlayer = boardData?.players.white === undefined || boardData?.players.black === undefined
 
-	if (!boardData) return <Loading />
-	return (
-		<DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-			<div className='ChessBoard'>
-				<div
-					className={`ChessBoardContainer${dragDatas.active ? ' isdragging' : ''}${userColor === 'black' ? ' isBlack' : ''}`}
-					onClick={handleBoardClick}
-				>
-					<div className='Board'>
-						{boardData.board.map((boardRow, rowIndex) => (
-							<div key={rowIndex} className='Row'>
-								{boardRow.map((boardCell, colIndex) => {
-									const id = `${rowIndex}-${colIndex}`
-									const piece = boardCell && !needPlayer ? boardData.pieces.find(piece => piece.id === boardCell) : undefined
-									const dropEnabled = !!dragDatas.enabledCells.find(cell => cell[0] === rowIndex && cell[1] === colIndex)
-									const isSelected = !!(dragDatas.active && dragDatas.active?.id === piece?.id)
-									return (
-										<Cell
-											key={id}
-											id={id}
-											col={colIndex}
-											row={rowIndex}
-											piece={piece}
-											dropEnabled={dropEnabled}
-											isSelected={isSelected}
-											handleDropOnCell={handleDropOnCell}
-											playerTurn={boardData.playerTurn}
-											userColor={userColor}
-										/>
-									)
-								})}
-							</div>
-						))}
+  if (!boardData) return <Loading />
+  return (
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className='ChessBoard'>
+        <div
+          className={`ChessBoardContainer${dragDatas.active ? ' isdragging' : ''}${userColor === 'black' ? ' isBlack' : ''}`}
+          onClick={handleBoardClick}
+        >
+          <div className='Board'>
+            {boardData.board.map((boardRow, rowIndex) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              <div key={rowIndex} className='Row'>
+                {boardRow.map((boardCell, colIndex) => {
+                  const id = `${rowIndex}-${colIndex}`
+                  const piece = boardCell && !needPlayer ? boardData.pieces.find(piece => piece.id === boardCell) : undefined
+                  const dropEnabled = !!dragDatas.enabledCells.find(cell => cell[0] === rowIndex && cell[1] === colIndex)
+                  const isSelected = !!(dragDatas.active && dragDatas.active?.id === piece?.id)
+                  return (
+                    <Cell
+                      key={id}
+                      id={id}
+                      col={colIndex}
+                      row={rowIndex}
+                      piece={piece}
+                      dropEnabled={dropEnabled}
+                      isSelected={isSelected}
+                      handleDropOnCell={handleDropOnCell}
+                      playerTurn={boardData.playerTurn}
+                      userColor={userColor}
+                    />
+                  )
+                })}
+              </div>
+            ))}
 
-						{needPlayer &&
-							(userColor ? (
-								<div className='ChoicePlayers'>En attente d'un joueur</div>
-							) : (
-								<div className='ChoicePlayers'>
-									<button className='button' type='button' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
-										Jouer les blancs
-									</button>
-									<button className='button' type='button' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
-										Jouer les noirs
-									</button>
-								</div>
-							))}
-					</div>
-				</div>
-				<div className='LostPieces'>
-					{boardData.pieces
-						.filter(piece => piece.position === null)
-						.map(piece => {
-							return <Piece key={piece.id} piece={piece} />
-						})}
-				</div>
-				<DragOverlay className='DragOverlay' dropAnimation={dragDatas.withDropAnim ? undefined : null}>
-					{dragDatas.active && <Piece piece={dragDatas.active} isOverlay={true} />}
-				</DragOverlay>
-			</div>
-		</DndContext>
-	)
+            {needPlayer &&
+              (userColor ? (
+                <div className='ChoicePlayers'>En attente d'un joueur</div>
+              ) : (
+                <div className='ChoicePlayers'>
+                  <button className='button' type='button' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
+                    Jouer les blancs
+                  </button>
+                  <button className='button' type='button' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
+                    Jouer les noirs
+                  </button>
+                </div>
+              ))}
+          </div>
+        </div>
+        <div className='LostPieces'>
+          {boardData.pieces
+            .filter(piece => piece.position === null)
+            .map(piece => {
+              return <Piece key={piece.id} piece={piece} />
+            })}
+        </div>
+        <DragOverlay className='DragOverlay' dropAnimation={dragDatas.withDropAnim ? undefined : null}>
+          {dragDatas.active && <Piece piece={dragDatas.active} isOverlay={true} />}
+        </DragOverlay>
+      </div>
+    </DndContext>
+  )
 }
 
 export default ChessBoard

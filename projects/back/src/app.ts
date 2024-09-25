@@ -1,8 +1,8 @@
+import { createContext } from '@back/services/context'
 import { createHTTPServer } from '@trpc/server/adapters/standalone'
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
 import cors from 'cors'
 import ws from 'ws'
-import { createContext } from '@back/services/context'
 import appRouter from './router'
 
 const port = +(process.env.PORT || 4001)
@@ -12,27 +12,27 @@ const port = +(process.env.PORT || 4001)
 export type AppRouter = typeof appRouter
 
 const httpServer = createHTTPServer({
-	middleware: cors(),
-	router: appRouter,
-	createContext
+  middleware: cors(),
+  router: appRouter,
+  createContext
 })
 
 const wss = new ws.Server({
-	server: httpServer
+  server: httpServer
 })
 
 const handler = applyWSSHandler({ wss, router: appRouter, createContext })
 wss.on('connection', ws => {
-	console.log(`new connection (${wss.clients.size})`)
-	ws.once('close', () => {
-		console.log(`closed connection (${wss.clients.size})`)
-	})
+  console.log(`new connection (${wss.clients.size})`)
+  ws.once('close', () => {
+    console.log(`closed connection (${wss.clients.size})`)
+  })
 })
 
 process.on('SIGTERM', () => {
-	console.log('SIGTERM')
-	handler.broadcastReconnectNotification()
-	wss.close()
+  console.log('SIGTERM')
+  handler.broadcastReconnectNotification()
+  wss.close()
 })
 
 httpServer.listen(port)
