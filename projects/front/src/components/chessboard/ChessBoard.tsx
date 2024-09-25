@@ -5,7 +5,6 @@ import type { ChessGame, PieceType } from '@common/chess'
 import type { Session, User } from '@common/model'
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent } from '@dnd-kit/core'
 import Loading from '@front/components/Loading'
-import { getDroppableCells } from '@front/utils'
 import { trpc } from '@front/utils/trpc'
 import Piece from './Piece'
 
@@ -60,7 +59,7 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
     setDragDatas({
       active,
       withDropAnim: true,
-      enabledCells: getDroppableCells({ boardData, active })
+      enabledCells: boardData.droppableCells[active.id]
     })
   }
 

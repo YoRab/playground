@@ -18,6 +18,7 @@ export type ChessGame = {
   history: { move: string; time: number }[]
   board: (string | null)[][]
   pieces: PieceType[]
+  droppableCells: Record<PieceType['id'], [number, number][]>
   createdAt: number
   startedAt: number | null
   endedAt: number | null

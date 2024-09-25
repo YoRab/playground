@@ -3,6 +3,6 @@ export const getPathRoute = () => {
 }
 
 export const getPathParams = () => {
-  const [route, ...params] = window.location.hash.substring(2).split('/')
+  const [_route, ...params] = window.location.hash.substring(2).split('/')
   return params
 }

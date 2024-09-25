@@ -3,7 +3,7 @@ import userApi from '@back/api/user'
 import { getDroppableCells } from '@back/utils/chess'
 import type { ChessGame, PieceType } from '@common/chess'
 
-const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
+const resolveUsersAndDroppableCells = async (game?: DBChess): Promise<ChessGame | undefined> => {
   if (game === undefined) return undefined
 
   const owner = (await userApi.findById(game.owner))!
@@ -12,22 +12,30 @@ const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
     black: game.players.black ? (await userApi.findById(game.players.black))! : undefined
   }
 
+  const droppableCells = game.pieces.reduce(
+    (prev, current) => {
+      prev[current.id] = getDroppableCells({ boardData: { pieces: game.pieces, board: game.board }, active: current })
+      return prev
+    },
+    {} as Record<string, [number, number][]>
+  )
   return {
     ...game,
     owner,
-    players
+    players,
+    droppableCells
   }
 }
 
 export const findMany = async (): Promise<ChessGame[]> => {
   const games = await chessApi.findMany()
-  const promises = games.map(async session => (await resolveUsers(session))!)
+  const promises = games.map(async session => (await resolveUsersAndDroppableCells(session))!)
   return Promise.all(promises)
 }
 
 export const findChessById = async (id: string): Promise<ChessGame | undefined> => {
   const game = await chessApi.findById(id)
-  return resolveUsers(game)
+  return resolveUsersAndDroppableCells(game)
 }
 
 export const createGame = async (owner: string, sessionId: string): Promise<ChessGame | undefined> => {
@@ -36,7 +44,7 @@ export const createGame = async (owner: string, sessionId: string): Promise<Ches
     return
   }
   const game = await chessApi.create({ sessionId, owner })
-  return resolveUsers(game)
+  return resolveUsersAndDroppableCells(game)
 }
 
 export const deleteGame = async (boardId: string, ownerId: string): Promise<boolean> => {
@@ -85,7 +93,7 @@ export const addPlayer = async (boardId: string, color: 'white' | 'black', userI
     userId,
     color
   })
-  return (await resolveUsers(refreshedGame!)) || false
+  return (await resolveUsersAndDroppableCells(refreshedGame!)) || false
 }
 
 export const movePiece = async (
@@ -123,5 +131,5 @@ export const movePiece = async (
   })
 
   //TODO check for endgame
-  return (await resolveUsers(refreshedGame!)) ?? false
+  return (await resolveUsersAndDroppableCells(refreshedGame!)) ?? false
 }
