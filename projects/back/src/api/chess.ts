@@ -1,5 +1,5 @@
-import { PIECES, getInitBoard, moveCell } from '@back/utils/chess'
-import type { PieceType } from '@common/chess'
+import { PIECES, encodeToAlgebraicNotation, getInitBoard, moveCell } from '@back/utils/chess'
+import type { HistoryItem, PieceType } from '@common/chess'
 import { v4 as uuidv4 } from 'uuid'
 export type DBChess = {
   id: string
@@ -67,6 +67,7 @@ const chessApi = {
     playerColor: 'white' | 'black'
     boardId: string
     piece: Pick<PieceType, 'id' | 'position'>
+    historyItem: HistoryItem
     newPosition: [number, number]
   }) => {
     const gameIndex = games.findIndex(item => item.id === data.boardId)
@@ -79,6 +80,7 @@ const chessApi = {
       board: moveCell({
         board: games[gameIndex].board,
         newPosition: data.newPosition,
+        enPassant: data.historyItem.enPassant,
         currentActive: data.piece
       }),
       pieces: games[gameIndex].pieces.map(piece => {
@@ -88,10 +90,18 @@ const chessApi = {
         if (piece.position?.[0] === data.newPosition[0] && piece.position?.[1] === data.newPosition[1]) {
           return { ...piece, position: null }
         }
+
+        if (
+          data.historyItem.enPassant &&
+          piece.position?.[0] === data.historyItem.enPassant[0] &&
+          piece.position?.[1] === data.historyItem.enPassant[1]
+        ) {
+          return { ...piece, position: null }
+        }
         return piece
       }),
       startedAt: games[gameIndex].startedAt || Date.now(),
-      history: [...games[gameIndex].history, { move: '', time: Date.now() }]
+      history: [...games[gameIndex].history, { move: encodeToAlgebraicNotation(data.historyItem), time: Date.now() }]
     }
     return games[gameIndex]
   }

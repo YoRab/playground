@@ -1,14 +1,21 @@
-import type { PieceType } from '@common/chess'
+import type { HistoryItem, PieceType, PieceTypeType } from '@common/chess'
 
 const PIECE_ORDER = ['r1', 'k1', 'b1', 'queen', 'king', 'b2', 'k2', 'r2']
 
 /**
  * TODO
  * - ROC
- * - Prise en passant
  * - Promotion
  * - end game
  *  */
+
+type Move = {
+  to: [number, number]
+  promotion?: PieceTypeType | undefined
+  tookPiece?: boolean
+  castling?: boolean
+  enPassant?: [number, number] | undefined
+}
 
 export const getInitBoard = () => {
   const board: (string | null)[][] = []
@@ -235,10 +242,12 @@ export const PIECES: PieceType[] = [
 export const moveCell = ({
   board,
   currentActive,
+  enPassant,
   newPosition: [row, col]
 }: {
   board: (string | null)[][]
   currentActive: Pick<PieceType, 'id' | 'position'>
+  enPassant: [number, number] | undefined
   newPosition: [number, number]
 }) => {
   if (!currentActive.position) return board
@@ -250,49 +259,72 @@ export const moveCell = ({
   const newNewBoardCol = [...newBoardRow.slice(0, col), currentActive.id, ...newBoardRow.slice(col + 1)]
   const newNewBoard = [...newBoard.slice(0, row), newNewBoardCol, ...newBoard.slice(row + 1)]
 
+  if (enPassant) {
+    const enPassantBoardRow = newNewBoard[enPassant[0]]
+    const enPassantBoardCol = [...enPassantBoardRow.slice(0, enPassant[1]), null, ...enPassantBoardRow.slice(enPassant[1] + 1)]
+    return [...newNewBoard.slice(0, enPassant[0]), enPassantBoardCol, ...newNewBoard.slice(enPassant[0] + 1)]
+  }
+
   return newNewBoard
 }
 
 const getMoveIfFree = ({
-  board,
+  boardData,
   targetRow,
   targetCol,
-  pieces,
   active,
   canTake = true
 }: {
-  board: (string | null)[][]
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  }
   targetRow: number
   targetCol: number
-  pieces: PieceType[]
   active: PieceType
   canTake?: boolean
-}): { move: [number, number] | undefined; keep: boolean } => {
+}): { move: Move | undefined; keep: boolean } => {
   const { color } = active
-  const targetCell = board[targetRow][targetCol]
+  const targetCell = boardData.board[targetRow][targetCol]
   if (!targetCell) {
-    return { move: [targetRow, targetCol], keep: true }
+    return { move: { to: [targetRow, targetCol] }, keep: true }
   }
-  const targetPiece = pieces.find(piece => piece.id === targetCell)
+  const targetPiece = boardData.pieces.find(piece => piece.id === targetCell)
   return {
-    move: canTake && targetPiece?.color !== color ? [targetRow, targetCol] : undefined,
+    move: canTake && targetPiece?.color !== color ? { to: [targetRow, targetCol], tookPiece: true } : undefined,
     keep: false
   }
 }
 
-const getPawnMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
+const getPawnMoves = (
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  },
+  active: PieceType
+): Move[] => {
   const { color, position } = active
   if (!position) return []
 
-  const moves: [number, number][] = []
+  const moves: Move[] = []
+  const lastMove = boardData.history[boardData.history.length - 1]
 
-  const [checkPos, checkPosNext, direction] =
-    color === 'white' ? [() => position[0] > 0, () => position[0] === 6, -1] : [() => position[0] < 7, () => position[0] === 1, 1]
+  const [checkPos, checkPosNext, checkPosEnPassantLeft, checkPosEnPassantRight, direction] =
+    color === 'white'
+      ? [() => position[0] > 0, () => position[0] === 6, () => position[0] === 3 && position[1] > 0, () => position[0] === 3 && position[1] < 7, -1]
+      : [() => position[0] < 7, () => position[0] === 1, () => position[0] === 4 && position[1] > 0, () => position[0] === 4 && position[1] < 7, 1]
 
   if (checkPos()) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] + 1 * direction,
       targetCol: position[1],
@@ -301,8 +333,7 @@ const getPawnMoves = (board: (string | null)[][], pieces: PieceType[], active: P
     if (check.move) moves.push(check.move)
     if (checkPosNext() && check.keep) {
       const checkNext = getMoveIfFree({
-        board,
-        pieces,
+        boardData,
         active,
         targetRow: position[0] + 2 * direction,
         targetCol: position[1],
@@ -313,8 +344,7 @@ const getPawnMoves = (board: (string | null)[][], pieces: PieceType[], active: P
 
     if (position[1] > 0) {
       const checkLeft = getMoveIfFree({
-        board,
-        pieces,
+        boardData,
         active,
         targetRow: position[0] + 1 * direction,
         targetCol: position[1] - 1
@@ -324,27 +354,58 @@ const getPawnMoves = (board: (string | null)[][], pieces: PieceType[], active: P
 
     if (position[1] < 7) {
       const checkRight = getMoveIfFree({
-        board,
-        pieces,
+        boardData,
         active,
         targetRow: position[0] + 1 * direction,
         targetCol: position[1] + 1
       })
       if (checkRight.move && !checkRight.keep) moves.push(checkRight.move)
     }
+
+    if (checkPosEnPassantLeft() && lastMove?.move === `${positionToAlgebraic([position[0], position[1] - 1])}`) {
+      const checkEnPassantLeft = getMoveIfFree({
+        boardData,
+        active,
+        targetRow: position[0] + 1 * direction,
+        targetCol: position[1] - 1,
+        canTake: false
+      })
+      if (checkEnPassantLeft.move) moves.push({ ...checkEnPassantLeft.move, tookPiece: true, enPassant: [position[0], position[1] - 1] })
+    }
+
+    if (checkPosEnPassantRight() && lastMove?.move === `${positionToAlgebraic([position[0], position[1] + 1])}`) {
+      const checkEnPassantRight = getMoveIfFree({
+        boardData,
+        active,
+        targetRow: position[0] + 1 * direction,
+        targetCol: position[1] + 1,
+        canTake: false
+      })
+      if (checkEnPassantRight.move) moves.push({ ...checkEnPassantRight.move, tookPiece: true, enPassant: [position[0], position[1] + 1] })
+    }
   }
   return moves
 }
 
-const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
+const getKingMoves = (
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  },
+  active: PieceType
+): Move[] => {
   const { color, position } = active
   if (!position) return []
 
-  const moves: [number, number][] = []
+  const moves: Move[] = []
+
   if (position[0] > 0 && position[1] > 0) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] - 1,
       targetCol: position[1] - 1
@@ -353,8 +414,7 @@ const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   }
   if (position[0] > 0) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] - 1,
       targetCol: position[1]
@@ -363,8 +423,7 @@ const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   }
   if (position[0] > 0 && position[1] < 7) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] - 1,
       targetCol: position[1] + 1
@@ -373,8 +432,7 @@ const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   }
   if (position[1] > 0) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0],
       targetCol: position[1] - 1
@@ -383,8 +441,7 @@ const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   }
   if (position[1] < 7) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0],
       targetCol: position[1] + 1
@@ -393,8 +450,7 @@ const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   }
   if (position[0] < 7 && position[1] > 0) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] + 1,
       targetCol: position[1] - 1
@@ -403,8 +459,7 @@ const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   }
   if (position[0] < 7 && position[1] < 7) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] + 1,
       targetCol: position[1] + 1
@@ -413,8 +468,7 @@ const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   }
   if (position[0] < 7) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] + 1,
       targetCol: position[1]
@@ -424,16 +478,25 @@ const getKingMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   return moves
 }
 
-const getRookMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
+const getRookMoves = (
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  },
+  active: PieceType
+): Move[] => {
   const { position } = active
   if (!position) return []
 
-  const moves: [number, number][] = []
+  const moves: Move[] = []
 
   for (let i = position[0] - 1; i >= 0; i--) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: i,
       targetCol: position[1]
@@ -444,8 +507,7 @@ const getRookMoves = (board: (string | null)[][], pieces: PieceType[], active: P
 
   for (let i = position[0] + 1; i < 8; i++) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: i,
       targetCol: position[1]
@@ -456,8 +518,7 @@ const getRookMoves = (board: (string | null)[][], pieces: PieceType[], active: P
 
   for (let i = position[1] - 1; i >= 0; i--) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0],
       targetCol: i
@@ -468,8 +529,7 @@ const getRookMoves = (board: (string | null)[][], pieces: PieceType[], active: P
 
   for (let i = position[1] + 1; i < 8; i++) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0],
       targetCol: i
@@ -480,17 +540,26 @@ const getRookMoves = (board: (string | null)[][], pieces: PieceType[], active: P
   return moves
 }
 
-const getBishopMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
+const getBishopMoves = (
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  },
+  active: PieceType
+): Move[] => {
   const { color, position } = active
   if (!position) return []
 
-  const moves: [number, number][] = []
+  const moves: Move[] = []
 
   for (let i = position[0] - 1; i >= 0; i--) {
     if (position[1] - (position[0] - i) >= 0) {
       const check = getMoveIfFree({
-        board,
-        pieces,
+        boardData,
         active,
         targetRow: i,
         targetCol: position[1] - (position[0] - i)
@@ -502,8 +571,7 @@ const getBishopMoves = (board: (string | null)[][], pieces: PieceType[], active:
   for (let i = position[0] - 1; i >= 0; i--) {
     if (position[1] + (position[0] - i) < 8) {
       const check = getMoveIfFree({
-        board,
-        pieces,
+        boardData,
         active,
         targetRow: i,
         targetCol: position[1] + (position[0] - i)
@@ -516,8 +584,7 @@ const getBishopMoves = (board: (string | null)[][], pieces: PieceType[], active:
   for (let i = position[0] + 1; i < 8; i++) {
     if (position[1] - (position[0] - i) >= 0) {
       const check = getMoveIfFree({
-        board,
-        pieces,
+        boardData,
         active,
         targetRow: i,
         targetCol: position[1] - (position[0] - i)
@@ -529,8 +596,7 @@ const getBishopMoves = (board: (string | null)[][], pieces: PieceType[], active:
   for (let i = position[0] + 1; i < 8; i++) {
     if (position[1] + (position[0] - i) < 8) {
       const check = getMoveIfFree({
-        board,
-        pieces,
+        boardData,
         active,
         targetRow: i,
         targetCol: position[1] + (position[0] - i)
@@ -543,19 +609,39 @@ const getBishopMoves = (board: (string | null)[][], pieces: PieceType[], active:
   return moves
 }
 
-const getQueenMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
-  return [...getRookMoves(board, pieces, active), ...getBishopMoves(board, pieces, active)]
+const getQueenMoves = (
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  },
+  active: PieceType
+): Move[] => {
+  return [...getRookMoves(boardData, active), ...getBishopMoves(boardData, active)]
 }
 
-const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
+const getKnightMoves = (
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  },
+  active: PieceType
+): Move[] => {
   const { color, position } = active
   if (!position) return []
 
-  const moves: [number, number][] = []
+  const moves: Move[] = []
+
   if (position[0] > 1 && position[1] > 0) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] - 2,
       targetCol: position[1] - 1
@@ -564,8 +650,7 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
   }
   if (position[0] > 1 && position[1] < 7) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] - 2,
       targetCol: position[1] + 1
@@ -574,8 +659,7 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
   }
   if (position[0] < 6 && position[1] > 0) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] + 2,
       targetCol: position[1] - 1
@@ -584,8 +668,7 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
   }
   if (position[0] < 6 && position[1] < 7) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] + 2,
       targetCol: position[1] + 1
@@ -595,8 +678,7 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
 
   if (position[0] > 0 && position[1] > 1) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] - 1,
       targetCol: position[1] - 2
@@ -605,8 +687,7 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
   }
   if (position[0] < 7 && position[1] > 1) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] + 1,
       targetCol: position[1] - 2
@@ -616,8 +697,7 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
 
   if (position[0] > 0 && position[1] < 6) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] - 1,
       targetCol: position[1] + 2
@@ -626,8 +706,7 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
   }
   if (position[0] < 7 && position[1] < 6) {
     const check = getMoveIfFree({
-      board,
-      pieces,
+      boardData,
       active,
       targetRow: position[0] + 1,
       targetCol: position[1] + 2
@@ -637,65 +716,117 @@ const getKnightMoves = (board: (string | null)[][], pieces: PieceType[], active:
   return moves
 }
 
-export const getPiecesMoves = (board: (string | null)[][], pieces: PieceType[], active: PieceType): [number, number][] => {
+const getPiecesMoves = (
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  },
+  active: PieceType
+): Move[] => {
   switch (active.type) {
     case 'pawn':
-      return getPawnMoves(board, pieces, active)
+      return getPawnMoves(boardData, active)
     case 'king':
-      return getKingMoves(board, pieces, active)
+      return getKingMoves(boardData, active)
     case 'queen':
-      return getQueenMoves(board, pieces, active)
+      return getQueenMoves(boardData, active)
     case 'rook':
-      return getRookMoves(board, pieces, active)
+      return getRookMoves(boardData, active)
     case 'knight':
-      return getKnightMoves(board, pieces, active)
+      return getKnightMoves(boardData, active)
     case 'bishop':
-      return getBishopMoves(board, pieces, active)
+      return getBishopMoves(boardData, active)
   }
 }
 
-const isThereChess = (board: (string | null)[][], pieces: PieceType[], color: 'white' | 'black') => {
-  const kingPos = pieces.find(piece => piece.id === `${color === 'white' ? 'w' : 'b'}king`)?.position
+const isThereChess = (
+  boardData: {
+    board: (string | null)[][]
+    pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
+  },
+  color: 'white' | 'black'
+) => {
+  const kingPos = boardData.pieces.find(piece => piece.id === `${color === 'white' ? 'w' : 'b'}king`)?.position
   if (!kingPos) return false
-  const ennemyPieces = pieces.filter(piece => piece.color === (color === 'white' ? 'black' : 'white'))
+  const ennemyPieces = boardData.pieces.filter(piece => piece.color === (color === 'white' ? 'black' : 'white'))
   for (const piece of ennemyPieces) {
-    const pieceMoves = getPiecesMoves(board, pieces, piece)
+    const pieceMoves = getPiecesMoves(boardData, piece)
     for (const ennemyMove of pieceMoves) {
-      if (ennemyMove[0] === kingPos[0] && ennemyMove[1] === kingPos[1]) return true
+      if (ennemyMove.to[0] === kingPos[0] && ennemyMove.to[1] === kingPos[1]) return true
     }
   }
   return false
 }
 
 const getMovesWithoutChessMate = ({
-  boardData: { board, pieces },
+  boardData: { board, pieces, history },
   active,
   moves
 }: {
   boardData: {
     board: (string | null)[][]
     pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
   }
   active: PieceType
-  moves: [number, number][]
-}) => {
-  const movesWithoutChessMate: [number, number][] = []
+  moves: Move[]
+}): Move[] => {
+  const movesWithoutChessMate: Move[] = []
   for (const move of moves) {
     const simulatedBoard = moveCell({
       board,
-      newPosition: move,
-      currentActive: active
+      newPosition: move.to,
+      currentActive: active,
+      enPassant: move.enPassant
     })
-    const newPieces = pieces.map(piece => {
+    const simulatedPieces = pieces.map(piece => {
       if (piece.id === active.id) {
-        return { ...piece, position: move }
+        return { ...piece, position: move.to }
       }
-      if (piece.position?.[0] === move[0] && piece.position?.[1] === move[1]) {
+      if (piece.position?.[0] === move.to[0] && piece.position?.[1] === move.to[1]) {
         return { ...piece, position: null }
       }
       return piece
     })
-    if (!isThereChess(simulatedBoard, newPieces, active.color)) {
+
+    const simulatedHistory = [
+      ...history,
+      {
+        move: encodeToAlgebraicNotation({
+          color: active.color,
+          pieceId: active.id,
+          from: {
+            position: active.position!
+          },
+          to: {
+            position: move.to
+          },
+          promotion: move.promotion,
+          tookPiece: move.tookPiece,
+          castling: move.castling,
+          enPassant: move.enPassant
+        }),
+        time: Date.now()
+      }
+    ]
+
+    const simulatedBoardData = {
+      board: simulatedBoard,
+      pieces: simulatedPieces,
+      history: simulatedHistory
+    }
+    if (!isThereChess(simulatedBoardData, active.color)) {
       movesWithoutChessMate.push(move)
     }
   }
@@ -709,15 +840,67 @@ export const getDroppableCells = ({
   boardData: {
     board: (string | null)[][]
     pieces: PieceType[]
+    history: {
+      move: string
+      time: number
+    }[]
   }
   active: PieceType
-}): [number, number][] => {
-  const { board, pieces } = boardData
-  const moves = getPiecesMoves(board, pieces, active)
+}): Move[] => {
+  const moves = getPiecesMoves(boardData, active)
   const movesWithoutChessMate = getMovesWithoutChessMate({
     boardData,
     active,
     moves
   })
   return movesWithoutChessMate
+}
+
+// Conversion entre indices et notation des colonnes (e.g., 0 -> 'a', 7 -> 'h')
+const positionToAlgebraic = ([row, col]: [number, number]): string => {
+  return String.fromCharCode(97 + col) + (8 - row)
+}
+
+// Fonction d'encodage en notation algébrique
+export const encodeToAlgebraicNotation = (item: HistoryItem): string => {
+  // Détection du type de coup
+  const piece = PIECES.find(p => p.id === item.pieceId)
+  let moveNotation = ''
+
+  if (!piece) throw new Error('Piece not found')
+
+  // Cas du roque
+  if (item.castling) {
+    if (item.to.position[1] === 6) return 'O-O' // Petit roque
+    if (item.to.position[1] === 2) return 'O-O-O' // Grand roque
+  }
+
+  // Ajout du type de pièce (sauf pour les pions)
+  if (piece.type !== 'pawn') {
+    moveNotation += piece.type[0].toUpperCase()
+  }
+
+  // Si une pièce est capturée
+  if (item.tookPiece) {
+    if (piece.type === 'pawn') {
+      // Pour les pions qui prennent, il faut préciser la colonne de départ
+      moveNotation += String.fromCharCode(97 + item.from.position[1])
+    }
+    moveNotation += 'x'
+  }
+
+  // Ajout de la position finale
+  moveNotation += positionToAlgebraic(item.to.position)
+
+  // Si c'est une prise en passant
+  if (item.enPassant) {
+    moveNotation += ' e.p.' // Indique une prise en passant
+  }
+
+  // Si promotion
+  if (item.promotion) {
+    moveNotation += `=${item.promotion[0].toUpperCase()}`
+  }
+
+  return moveNotation
 }

@@ -23,3 +23,18 @@ export type ChessGame = {
   startedAt: number | null
   endedAt: number | null
 }
+
+export type HistoryItem = {
+  color: 'white' | 'black'
+  pieceId: string
+  from: {
+    position: [number, number]
+  }
+  to: {
+    position: [number, number]
+  }
+  promotion?: PieceTypeType | undefined
+  tookPiece?: boolean
+  enPassant?: [number, number] | undefined
+  castling?: boolean
+}

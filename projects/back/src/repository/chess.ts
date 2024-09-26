@@ -1,9 +1,9 @@
 import chessApi, { type DBChess } from '@back/api/chess'
 import userApi from '@back/api/user'
 import { getDroppableCells } from '@back/utils/chess'
-import type { ChessGame, PieceType } from '@common/chess'
+import type { ChessGame, HistoryItem, PieceType } from '@common/chess'
 
-const resolveUsersAndDroppableCells = async (game?: DBChess): Promise<ChessGame | undefined> => {
+const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
   if (game === undefined) return undefined
 
   const owner = (await userApi.findById(game.owner))!
@@ -14,10 +14,12 @@ const resolveUsersAndDroppableCells = async (game?: DBChess): Promise<ChessGame 
 
   const droppableCells = game.pieces.reduce(
     (prev, current) => {
-      prev[current.id] = getDroppableCells({ boardData: { pieces: game.pieces, board: game.board }, active: current })
+      prev[current.id] = getDroppableCells({ boardData: { pieces: game.pieces, board: game.board, history: game.history }, active: current }).map(
+        move => move.to
+      )
       return prev
     },
-    {} as Record<string, [number, number][]>
+    {} as ChessGame['droppableCells']
   )
   return {
     ...game,
@@ -29,13 +31,13 @@ const resolveUsersAndDroppableCells = async (game?: DBChess): Promise<ChessGame 
 
 export const findMany = async (): Promise<ChessGame[]> => {
   const games = await chessApi.findMany()
-  const promises = games.map(async session => (await resolveUsersAndDroppableCells(session))!)
+  const promises = games.map(async session => (await resolveUsers(session))!)
   return Promise.all(promises)
 }
 
 export const findChessById = async (id: string): Promise<ChessGame | undefined> => {
   const game = await chessApi.findById(id)
-  return resolveUsersAndDroppableCells(game)
+  return resolveUsers(game)
 }
 
 export const createGame = async (owner: string, sessionId: string): Promise<ChessGame | undefined> => {
@@ -44,7 +46,7 @@ export const createGame = async (owner: string, sessionId: string): Promise<Ches
     return
   }
   const game = await chessApi.create({ sessionId, owner })
-  return resolveUsersAndDroppableCells(game)
+  return resolveUsers(game)
 }
 
 export const deleteGame = async (boardId: string, ownerId: string): Promise<boolean> => {
@@ -93,7 +95,7 @@ export const addPlayer = async (boardId: string, color: 'white' | 'black', userI
     userId,
     color
   })
-  return (await resolveUsersAndDroppableCells(refreshedGame!)) || false
+  return (await resolveUsers(refreshedGame!)) || false
 }
 
 export const movePiece = async (
@@ -118,18 +120,34 @@ export const movePiece = async (
   const piece = game.pieces.find(piece => piece.id === pieceId)
   if (!piece) return false
 
-  const droppableCells = getDroppableCells({ boardData: { pieces: game.pieces, board: game.board }, active: piece })
+  const droppableCells = getDroppableCells({ boardData: { pieces: game.pieces, board: game.board, history: game.history }, active: piece })
 
-  const isMoveCorrect = !!droppableCells.find(droppableCell => droppableCell[0] === newPosition[0] && droppableCell[1] === newPosition[1])
-  if (!isMoveCorrect) return false
+  const move = droppableCells.find(droppableCell => droppableCell.to[0] === newPosition[0] && droppableCell.to[1] === newPosition[1])
+  if (!move) return false
+
+  const historyItem: HistoryItem = {
+    color: playerColor,
+    pieceId: piece.id,
+    from: {
+      position: piece.position!
+    },
+    to: {
+      position: move.to
+    },
+    promotion: move.promotion,
+    tookPiece: move.tookPiece,
+    castling: move.castling,
+    enPassant: move.enPassant
+  }
 
   const refreshedGame = await chessApi.movePiece({
     playerColor,
     boardId: boardId,
     piece,
+    historyItem,
     newPosition
   })
 
   //TODO check for endgame
-  return (await resolveUsersAndDroppableCells(refreshedGame!)) ?? false
+  return (await resolveUsers(refreshedGame!)) ?? false
 }
