@@ -154,6 +154,21 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
               return <Piece key={piece.id} piece={piece} />
             })}
         </div>
+        <div className='history'>
+          <ul>
+            {boardData.history.flatMap((move, index) => {
+              if (index % 2 === 0) {
+                const blackMove = boardData.history[index + 1]?.move ?? ''
+                return (
+                  <li key={move.time}>
+                    {index / 2 + 1}. {move.move} {blackMove}
+                  </li>
+                )
+              }
+              return []
+            })}
+          </ul>
+        </div>
         <DragOverlay className='DragOverlay' dropAnimation={dragDatas.withDropAnim ? undefined : null}>
           {dragDatas.active && <Piece piece={dragDatas.active} isOverlay={true} />}
         </DragOverlay>

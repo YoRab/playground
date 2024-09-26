@@ -44,7 +44,7 @@
   user-select: none;
 }
 
-.LostPieces > .Piece {
+.LostPieces>.Piece {
   width: 48px;
 }
 
