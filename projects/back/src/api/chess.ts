@@ -10,6 +10,7 @@ export type DBChess = {
   history: { move: string; time: number }[]
   board: (string | null)[][]
   pieces: PieceType[]
+  castling: { white: { queenSide: boolean; kingSide: boolean }; black: { queenSide: boolean; kingSide: boolean } }
   createdAt: number
   startedAt: number | null
   endedAt: number | null
@@ -31,6 +32,7 @@ const chessApi = {
       history: [],
       board: getInitBoard(),
       pieces: PIECES,
+      castling: { white: { queenSide: true, kingSide: true }, black: { queenSide: true, kingSide: true } },
       createdAt: Date.now(),
       startedAt: null,
       endedAt: null
@@ -63,11 +65,26 @@ const chessApi = {
     return games[gameIndex]
   },
 
-  movePiece: async (data: {
-    playerColor: 'white' | 'black'
+  editBoard: async (data: {
     boardId: string
+    board: (string | null)[][]
+    pieces: PieceType[]
+    playerTurn: 'white' | 'black'
+    castling: {
+      white: {
+        queenSide: boolean
+        kingSide: boolean
+      }
+      black: {
+        queenSide: boolean
+        kingSide: boolean
+      }
+    }
     piece: Pick<PieceType, 'id' | 'position'>
-    historyItem: HistoryItem
+    historyMove: {
+      move: string
+      time: number
+    }
     newPosition: [number, number]
   }) => {
     const gameIndex = games.findIndex(item => item.id === data.boardId)
@@ -76,32 +93,12 @@ const chessApi = {
 
     games[gameIndex] = {
       ...games[gameIndex],
-      playerTurn: data.playerColor === 'white' ? 'black' : 'white',
-      board: moveCell({
-        board: games[gameIndex].board,
-        newPosition: data.newPosition,
-        enPassant: data.historyItem.enPassant,
-        currentActive: data.piece
-      }),
-      pieces: games[gameIndex].pieces.map(piece => {
-        if (piece.id === data.piece.id) {
-          return { ...piece, position: data.newPosition }
-        }
-        if (piece.position?.[0] === data.newPosition[0] && piece.position?.[1] === data.newPosition[1]) {
-          return { ...piece, position: null }
-        }
-
-        if (
-          data.historyItem.enPassant &&
-          piece.position?.[0] === data.historyItem.enPassant[0] &&
-          piece.position?.[1] === data.historyItem.enPassant[1]
-        ) {
-          return { ...piece, position: null }
-        }
-        return piece
-      }),
+      playerTurn: data.playerTurn,
+      board: data.board,
+      pieces: data.pieces,
+      castling: data.castling,
       startedAt: games[gameIndex].startedAt || Date.now(),
-      history: [...games[gameIndex].history, { move: encodeToAlgebraicNotation(data.historyItem), time: Date.now() }]
+      history: [...games[gameIndex].history, data.historyMove]
     }
     return games[gameIndex]
   }

@@ -1,3 +1,4 @@
+import type { DBChess } from '@back/api/chess'
 import type { HistoryItem, PieceType, PieceTypeType } from '@common/chess'
 
 const PIECE_ORDER = ['r1', 'k1', 'b1', 'queen', 'king', 'b2', 'k2', 'r2']
@@ -5,8 +6,7 @@ const PIECE_ORDER = ['r1', 'k1', 'b1', 'queen', 'king', 'b2', 'k2', 'r2']
 /**
  * TODO
  * - ROC
- * - Promotion
- * - end game
+ * - end game / PAT
  *  */
 
 type Move = {
@@ -16,6 +16,8 @@ type Move = {
   castling?: boolean
   enPassant?: [number, number] | undefined
 }
+
+type BoardData = Pick<DBChess, 'pieces' | 'history' | 'board' | 'castling'>
 
 export const getInitBoard = () => {
   const board: (string | null)[][] = []
@@ -275,14 +277,7 @@ const getMoveIfFree = ({
   active,
   canTake = true
 }: {
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  }
+  boardData: BoardData
   targetRow: number
   targetCol: number
   active: PieceType
@@ -300,17 +295,7 @@ const getMoveIfFree = ({
   }
 }
 
-const getPawnMoves = (
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  },
-  active: PieceType
-): Move[] => {
+const getPawnMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
   const { color, position } = active
   if (!position) return []
 
@@ -323,25 +308,26 @@ const getPawnMoves = (
       : [() => position[0] < 7, () => position[0] === 1, () => position[0] === 4 && position[1] > 0, () => position[0] === 4 && position[1] < 7, 1]
 
   if (checkPos()) {
-    const check = getMoveIfFree({
-      boardData,
-      active,
-      targetRow: position[0] + 1 * direction,
-      targetCol: position[1],
-      canTake: false
-    })
-    if (check.move) moves.push(check.move)
-    if (checkPosNext() && check.keep) {
-      const checkNext = getMoveIfFree({
+    if (!onlyTakenMove) {
+      const check = getMoveIfFree({
         boardData,
         active,
-        targetRow: position[0] + 2 * direction,
+        targetRow: position[0] + 1 * direction,
         targetCol: position[1],
         canTake: false
       })
-      if (checkNext.move) moves.push(checkNext.move)
+      if (check.move) moves.push(check.move)
+      if (checkPosNext() && check.keep) {
+        const checkNext = getMoveIfFree({
+          boardData,
+          active,
+          targetRow: position[0] + 2 * direction,
+          targetCol: position[1],
+          canTake: false
+        })
+        if (checkNext.move) moves.push(checkNext.move)
+      }
     }
-
     if (position[1] > 0) {
       const checkLeft = getMoveIfFree({
         boardData,
@@ -387,17 +373,7 @@ const getPawnMoves = (
   return moves
 }
 
-const getKingMoves = (
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  },
-  active: PieceType
-): Move[] => {
+const getKingMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
   const { color, position } = active
   if (!position) return []
 
@@ -475,20 +451,39 @@ const getKingMoves = (
     })
     if (check.move) moves.push(check.move)
   }
+
+  // queenside castling
+  if (
+    !onlyTakenMove &&
+    boardData.castling[color].queenSide &&
+    boardData.board[position[0]][0] === `${color === 'white' ? 'w' : 'b'}r1` &&
+    !boardData.board[position[0]][1] &&
+    !boardData.board[position[0]][2] &&
+    !boardData.board[position[0]][3] &&
+    !isThereChess(boardData, color, [position[0], 2]) &&
+    !isThereChess(boardData, color, [position[0], 3]) &&
+    !isThereChess(boardData, color, [position[0], 4])
+  ) {
+    moves.push({ to: [position[0], 2], castling: true })
+  }
+
+  // kingside castling
+  if (
+    !onlyTakenMove &&
+    boardData.castling[color].kingSide &&
+    !boardData.board[position[0]][5] &&
+    !boardData.board[position[0]][6] &&
+    boardData.board[position[0]][7] === `${color === 'white' ? 'w' : 'b'}r2` &&
+    !isThereChess(boardData, color, [position[0], 4]) &&
+    !isThereChess(boardData, color, [position[0], 5]) &&
+    !isThereChess(boardData, color, [position[0], 6])
+  ) {
+    moves.push({ to: [position[0], 6], castling: true })
+  }
   return moves
 }
 
-const getRookMoves = (
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  },
-  active: PieceType
-): Move[] => {
+const getRookMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
   const { position } = active
   if (!position) return []
 
@@ -540,17 +535,7 @@ const getRookMoves = (
   return moves
 }
 
-const getBishopMoves = (
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  },
-  active: PieceType
-): Move[] => {
+const getBishopMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
   const { color, position } = active
   if (!position) return []
 
@@ -609,31 +594,11 @@ const getBishopMoves = (
   return moves
 }
 
-const getQueenMoves = (
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  },
-  active: PieceType
-): Move[] => {
+const getQueenMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
   return [...getRookMoves(boardData, active), ...getBishopMoves(boardData, active)]
 }
 
-const getKnightMoves = (
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  },
-  active: PieceType
-): Move[] => {
+const getKnightMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
   const { color, position } = active
   if (!position) return []
 
@@ -716,49 +681,29 @@ const getKnightMoves = (
   return moves
 }
 
-const getPiecesMoves = (
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  },
-  active: PieceType
-): Move[] => {
+const getPiecesMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
   switch (active.type) {
     case 'pawn':
-      return getPawnMoves(boardData, active)
+      return getPawnMoves(boardData, active, onlyTakenMove)
     case 'king':
-      return getKingMoves(boardData, active)
+      return getKingMoves(boardData, active, onlyTakenMove)
     case 'queen':
-      return getQueenMoves(boardData, active)
+      return getQueenMoves(boardData, active, onlyTakenMove)
     case 'rook':
-      return getRookMoves(boardData, active)
+      return getRookMoves(boardData, active, onlyTakenMove)
     case 'knight':
-      return getKnightMoves(boardData, active)
+      return getKnightMoves(boardData, active, onlyTakenMove)
     case 'bishop':
-      return getBishopMoves(boardData, active)
+      return getBishopMoves(boardData, active, onlyTakenMove)
   }
 }
 
-const isThereChess = (
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  },
-  color: 'white' | 'black'
-) => {
-  const kingPos = boardData.pieces.find(piece => piece.id === `${color === 'white' ? 'w' : 'b'}king`)?.position
+const isThereChess = (boardData: BoardData, color: 'white' | 'black', posToCheck?: [number, number]) => {
+  const kingPos = posToCheck ?? boardData.pieces.find(piece => piece.id === `${color === 'white' ? 'w' : 'b'}king`)?.position
   if (!kingPos) return false
   const ennemyPieces = boardData.pieces.filter(piece => piece.color === (color === 'white' ? 'black' : 'white'))
   for (const piece of ennemyPieces) {
-    const pieceMoves = getPiecesMoves(boardData, piece)
+    const pieceMoves = getPiecesMoves(boardData, piece, true)
     for (const ennemyMove of pieceMoves) {
       if (ennemyMove.to[0] === kingPos[0] && ennemyMove.to[1] === kingPos[1]) return true
     }
@@ -767,18 +712,11 @@ const isThereChess = (
 }
 
 const getMovesWithoutChessMate = ({
-  boardData: { board, pieces, history },
+  boardData: { board, pieces, history, castling },
   active,
   moves
 }: {
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  }
+  boardData: BoardData
   active: PieceType
   moves: Move[]
 }): Move[] => {
@@ -800,31 +738,11 @@ const getMovesWithoutChessMate = ({
       return piece
     })
 
-    const simulatedHistory = [
-      ...history,
-      {
-        move: encodeToAlgebraicNotation({
-          color: active.color,
-          pieceId: active.id,
-          from: {
-            position: active.position!
-          },
-          to: {
-            position: move.to
-          },
-          promotion: move.promotion,
-          tookPiece: move.tookPiece,
-          castling: move.castling,
-          enPassant: move.enPassant
-        }),
-        time: Date.now()
-      }
-    ]
-
     const simulatedBoardData = {
       board: simulatedBoard,
       pieces: simulatedPieces,
-      history: simulatedHistory
+      history,
+      castling
     }
     if (!isThereChess(simulatedBoardData, active.color)) {
       movesWithoutChessMate.push(move)
@@ -837,14 +755,7 @@ export const getDroppableCells = ({
   boardData,
   active
 }: {
-  boardData: {
-    board: (string | null)[][]
-    pieces: PieceType[]
-    history: {
-      move: string
-      time: number
-    }[]
-  }
+  boardData: BoardData
   active: PieceType
 }): Move[] => {
   const moves = getPiecesMoves(boardData, active)
@@ -877,7 +788,7 @@ export const encodeToAlgebraicNotation = (item: HistoryItem): string => {
 
   // Ajout du type de pièce (sauf pour les pions)
   if (piece.type !== 'pawn') {
-    moveNotation += piece.type[0].toUpperCase()
+    moveNotation += (piece.type === 'knight' ? 'n' : piece.type[0]).toUpperCase()
   }
 
   // Si une pièce est capturée

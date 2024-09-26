@@ -1,6 +1,6 @@
 import chessApi, { type DBChess } from '@back/api/chess'
 import userApi from '@back/api/user'
-import { getDroppableCells } from '@back/utils/chess'
+import { encodeToAlgebraicNotation, getDroppableCells, moveCell } from '@back/utils/chess'
 import type { ChessGame, HistoryItem, PieceType } from '@common/chess'
 
 const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
@@ -14,15 +14,24 @@ const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
 
   const droppableCells = game.pieces.reduce(
     (prev, current) => {
-      prev[current.id] = getDroppableCells({ boardData: { pieces: game.pieces, board: game.board, history: game.history }, active: current }).map(
-        move => move.to
-      )
+      prev[current.id] = getDroppableCells({ boardData: game, active: current }).map(move => move.to)
       return prev
     },
     {} as ChessGame['droppableCells']
   )
+
+  const { id, sessionId, playerTurn, history, board, pieces, createdAt, startedAt, endedAt } = game
+
   return {
-    ...game,
+    id,
+    sessionId,
+    playerTurn,
+    history,
+    board,
+    pieces,
+    createdAt,
+    startedAt,
+    endedAt,
     owner,
     players,
     droppableCells
@@ -120,31 +129,85 @@ export const movePiece = async (
   const piece = game.pieces.find(piece => piece.id === pieceId)
   if (!piece) return false
 
-  const droppableCells = getDroppableCells({ boardData: { pieces: game.pieces, board: game.board, history: game.history }, active: piece })
+  const droppableCells = getDroppableCells({ boardData: game, active: piece })
 
   const move = droppableCells.find(droppableCell => droppableCell.to[0] === newPosition[0] && droppableCell.to[1] === newPosition[1])
   if (!move) return false
 
-  const historyItem: HistoryItem = {
-    color: playerColor,
-    pieceId: piece.id,
-    from: {
-      position: piece.position!
-    },
-    to: {
-      position: move.to
-    },
-    promotion: move.promotion,
-    tookPiece: move.tookPiece,
-    castling: move.castling,
-    enPassant: move.enPassant
+  let board = moveCell({
+    board: game.board,
+    newPosition: newPosition,
+    enPassant: move.enPassant,
+    currentActive: piece
+  })
+
+  if (move.castling) {
+    board = moveCell({
+      board,
+      newPosition: newPosition[1] === 6 ? [newPosition[0], 5] : [newPosition[0], 3],
+      enPassant: move.enPassant,
+      currentActive: game.pieces.find(piece => piece.position?.[0] === newPosition[0] && piece.position?.[1] === (newPosition[1] === 6 ? 7 : 0))!
+    })
   }
 
-  const refreshedGame = await chessApi.movePiece({
-    playerColor,
+  const pieces: PieceType[] = game.pieces.map(pieceItem => {
+    if (pieceItem.id === piece.id) {
+      return { ...pieceItem, position: newPosition }
+    }
+    if (pieceItem.position?.[0] === newPosition[0] && pieceItem.position?.[1] === newPosition[1]) {
+      return { ...pieceItem, position: null }
+    }
+
+    if (move.enPassant && pieceItem.position?.[0] === move.enPassant[0] && pieceItem.position?.[1] === move.enPassant[1]) {
+      return { ...pieceItem, position: null }
+    }
+
+    if (move.castling && pieceItem.position?.[0] === newPosition[0] && pieceItem.position?.[1] === (newPosition[1] === 6 ? 7 : 0)) {
+      return { ...pieceItem, position: [newPosition[0], newPosition[1] === 6 ? 5 : 3] }
+    }
+    return pieceItem
+  })
+
+  const historyMove = {
+    move: encodeToAlgebraicNotation({
+      color: playerColor,
+      pieceId: piece.id,
+      from: {
+        position: piece.position!
+      },
+      to: {
+        position: move.to
+      },
+      promotion: move.promotion,
+      tookPiece: move.tookPiece,
+      castling: move.castling,
+      enPassant: move.enPassant
+    }),
+    time: Date.now()
+  }
+
+  const castling = {
+    ...game.castling,
+    [playerColor]: {
+      queenSide:
+        move.castling || piece.type === 'king' || piece.id === `${playerColor === 'white' ? 'w' : 'b'}r1`
+          ? false
+          : game.castling[playerColor].queenSide,
+      kingSide:
+        move.castling || piece.type === 'king' || piece.id === `${playerColor === 'white' ? 'w' : 'b'}r2`
+          ? false
+          : game.castling[playerColor].kingSide
+    }
+  }
+
+  const refreshedGame = await chessApi.editBoard({
     boardId: boardId,
+    board,
+    pieces,
+    castling,
+    playerTurn: playerColor === 'white' ? 'black' : 'white',
     piece,
-    historyItem,
+    historyMove,
     newPosition
   })
 
