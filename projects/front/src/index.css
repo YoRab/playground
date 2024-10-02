@@ -9,3 +9,8 @@ img {
   /* biome-ignore lint/correctness/noUnknownProperty: this exists */
   user-drag: none;
 }
+
+
+.localModal {
+  position: absolute;
+}

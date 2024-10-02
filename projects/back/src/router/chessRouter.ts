@@ -54,15 +54,22 @@ export const chessRouter = {
     return refreshedGame
   }),
   movePiece: protectedProcedure
-    .input(z.object({ boardId: z.string(), pieceId: z.string(), newPosition: z.tuple([z.number(), z.number()]) }))
+    .input(
+      z.object({
+        boardId: z.string(),
+        pieceId: z.string(),
+        newPosition: z.tuple([z.number(), z.number()]),
+        promotion: z.enum(['queen', 'rook', 'bishop', 'knight']).optional()
+      })
+    )
     .mutation(async opts => {
       const { user } = opts.ctx
-      const { boardId, pieceId, newPosition } = opts.input
+      const { boardId, pieceId, newPosition, promotion } = opts.input
 
       const game = await chessRepo.findChessById(boardId)
       if (!game) return false
 
-      const refreshedGame = await chessRepo.movePiece(boardId, user!.id, pieceId, newPosition)
+      const refreshedGame = await chessRepo.movePiece(boardId, user!.id, pieceId, newPosition, promotion)
       if (refreshedGame) ee.emit(`refreshChessGame_${boardId}`)
       return refreshedGame
     })

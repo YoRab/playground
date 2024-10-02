@@ -1,7 +1,7 @@
 import chessApi, { type DBChess } from '@back/api/chess'
 import userApi from '@back/api/user'
 import { encodeToAlgebraicNotation, getDroppableCells, moveCell } from '@back/utils/chess'
-import type { ChessGame, HistoryItem, PieceType } from '@common/chess'
+import type { ChessGame, HistoryItem, PieceType, PieceTypeType } from '@common/chess'
 
 const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
   if (game === undefined) return undefined
@@ -111,7 +111,8 @@ export const movePiece = async (
   boardId: string,
   userId: string,
   pieceId: PieceType['id'],
-  newPosition: [number, number]
+  newPosition: [number, number],
+  promotion: PieceTypeType | undefined
 ): Promise<ChessGame | false> => {
   const game = await chessApi.findById(boardId)
   if (!game) return false
@@ -133,6 +134,7 @@ export const movePiece = async (
 
   const move = droppableCells.find(droppableCell => droppableCell.to[0] === newPosition[0] && droppableCell.to[1] === newPosition[1])
   if (!move) return false
+  if (move.promotion && (!promotion || !['queen', 'rook', 'bishop', 'knight'].includes(promotion))) return false
 
   let board = moveCell({
     board: game.board,
@@ -152,7 +154,7 @@ export const movePiece = async (
 
   const pieces: PieceType[] = game.pieces.map(pieceItem => {
     if (pieceItem.id === piece.id) {
-      return { ...pieceItem, position: newPosition }
+      return { ...pieceItem, position: newPosition, type: move.promotion ? promotion! : pieceItem.type }
     }
     if (pieceItem.position?.[0] === newPosition[0] && pieceItem.position?.[1] === newPosition[1]) {
       return { ...pieceItem, position: null }
@@ -178,7 +180,7 @@ export const movePiece = async (
       to: {
         position: move.to
       },
-      promotion: move.promotion,
+      promotion: promotion,
       tookPiece: move.tookPiece,
       castling: move.castling,
       enPassant: move.enPassant

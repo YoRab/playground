@@ -5,13 +5,12 @@ const PIECE_ORDER = ['r1', 'k1', 'b1', 'queen', 'king', 'b2', 'k2', 'r2']
 
 /**
  * TODO
- * - ROC
  * - end game / PAT
  *  */
 
 type Move = {
   to: [number, number]
-  promotion?: PieceTypeType | undefined
+  promotion?: boolean
   tookPiece?: boolean
   castling?: boolean
   enPassant?: [number, number] | undefined
@@ -285,12 +284,13 @@ const getMoveIfFree = ({
 }): { move: Move | undefined; keep: boolean } => {
   const { color } = active
   const targetCell = boardData.board[targetRow][targetCol]
+  const promotion = active.type === 'pawn' && targetRow % 7 === 0
   if (!targetCell) {
-    return { move: { to: [targetRow, targetCol] }, keep: true }
+    return { move: { to: [targetRow, targetCol], promotion }, keep: true }
   }
   const targetPiece = boardData.pieces.find(piece => piece.id === targetCell)
   return {
-    move: canTake && targetPiece?.color !== color ? { to: [targetRow, targetCol], tookPiece: true } : undefined,
+    move: canTake && targetPiece?.color !== color ? { to: [targetRow, targetCol], tookPiece: true, promotion } : undefined,
     keep: false
   }
 }

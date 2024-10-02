@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Cell from './Cell'
 import './ChessBoard.css'
-import type { ChessGame, PieceType } from '@common/chess'
+import type { ChessGame, PieceType, PieceTypeType } from '@common/chess'
 import type { Session, User } from '@common/model'
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent } from '@dnd-kit/core'
 import Loading from '@front/components/Loading'
@@ -9,6 +9,7 @@ import { trpc } from '@front/utils/trpc'
 import Piece from './Piece'
 
 const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; boardId: string }) => {
+  const [shallPromote, setShallPromote] = useState<{ pieceId: string; position: [number, number] } | undefined>(undefined)
   const [boardData, setBoardData] = useState<ChessGame>()
   const [dragDatas, setDragDatas] = useState<{
     active: PieceType | undefined
@@ -73,7 +74,22 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
       withDropAnim: false,
       enabledCells: []
     })
-    movePieceMutation.mutate({ boardId, pieceId: currentActive.id, newPosition: (over.data.current as any).position })
+
+    const pieceId = currentActive.id
+    const newPosition = (over.data.current as any).position
+
+    const piece = boardData?.pieces.find(piece => piece.id === pieceId)
+    if (piece?.type === 'pawn' && newPosition[0] % 7 === 0) {
+      setShallPromote({ pieceId, position: newPosition })
+    } else {
+      movePieceMutation.mutate({ boardId, pieceId, newPosition })
+    }
+  }
+
+  const choosePromotion = (type: 'queen' | 'rook' | 'bishop' | 'knight') => {
+    if (!shallPromote) return
+    movePieceMutation.mutate({ boardId, pieceId: shallPromote.pieceId, newPosition: shallPromote.position, promotion: type })
+    setShallPromote(undefined)
   }
 
   const handleDropOnCell = (row: number, col: number) => {
@@ -132,19 +148,48 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
               </div>
             ))}
 
-            {needPlayer &&
-              (userColor ? (
-                <div className='ChoicePlayers'>En attente d'un joueur</div>
-              ) : (
-                <div className='ChoicePlayers'>
-                  <button className='button' type='button' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
-                    Jouer les blancs
-                  </button>
-                  <button className='button' type='button' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
-                    Jouer les noirs
-                  </button>
+            {needPlayer && (
+              <div className='modal is-active localModal'>
+                <div className='modal-background' />
+                <div className='modal-card'>
+                  <section className='modal-card-body'>
+                    {userColor ? (
+                      "En attente d'un joueur"
+                    ) : (
+                      <>
+                        <button className='button' type='button' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
+                          Jouer les blancs
+                        </button>
+                        <button className='button' type='button' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
+                          Jouer les noirs
+                        </button>
+                      </>
+                    )}
+                  </section>
                 </div>
-              ))}
+              </div>
+            )}
+
+            {shallPromote && (
+              <div className='modal localModal is-active'>
+                <div className='modal-background' />
+                <div className='modal-card'>
+                  <header className='modal-card-head'>
+                    <p className='modal-card-title'>Promotion d'un pion</p>
+                  </header>
+                  <section className='modal-card-body'>Choisissez une pièce en laquelle promouvoir votre pion</section>
+                  <footer className='modal-card-foot'>
+                    <div className='buttons'>
+                      {(['queen', 'rook', 'bishop', 'knight'] as const).map(piece => (
+                        <button key={piece} type='button' className='button' onClick={() => choosePromotion(piece)}>
+                          <Piece piece={{ type: piece, color: userColor! }} />
+                        </button>
+                      ))}
+                    </div>
+                  </footer>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className='LostPieces'>
