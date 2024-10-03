@@ -3,11 +3,6 @@ import type { HistoryItem, PieceType, PieceTypeType } from '@common/chess'
 
 const PIECE_ORDER = ['r1', 'k1', 'b1', 'queen', 'king', 'b2', 'k2', 'r2']
 
-/**
- * TODO
- * - end game / PAT
- *  */
-
 type Move = {
   to: [number, number]
   promotion?: boolean
@@ -698,7 +693,7 @@ const getPiecesMoves = (boardData: BoardData, active: PieceType, onlyTakenMove =
   }
 }
 
-const isThereChess = (boardData: BoardData, color: 'white' | 'black', posToCheck?: [number, number]) => {
+export const isThereChess = (boardData: BoardData, color: 'white' | 'black', posToCheck?: [number, number]) => {
   const kingPos = posToCheck ?? boardData.pieces.find(piece => piece.id === `${color === 'white' ? 'w' : 'b'}king`)?.position
   if (!kingPos) return false
   const ennemyPieces = boardData.pieces.filter(piece => piece.color === (color === 'white' ? 'black' : 'white'))

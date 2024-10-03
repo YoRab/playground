@@ -14,6 +14,8 @@ export type DBChess = {
   createdAt: number
   startedAt: number | null
   endedAt: number | null
+  winner: string | null
+  result: string | null
 }
 
 let games: DBChess[] = []
@@ -35,7 +37,9 @@ const chessApi = {
       castling: { white: { queenSide: true, kingSide: true }, black: { queenSide: true, kingSide: true } },
       createdAt: Date.now(),
       startedAt: null,
-      endedAt: null
+      endedAt: null,
+      winner: null,
+      result: null
     }
     games.push(game)
     return game
@@ -43,15 +47,6 @@ const chessApi = {
   delete: async (data: { boardId: string }) => {
     games = games.filter(game => game.id !== data.boardId)
     return true
-  },
-  end: async (data: { boardId: string }) => {
-    const gameIndex = games.findIndex(item => item.id === data.boardId)
-    if (gameIndex < 0) return null
-    games[gameIndex] = {
-      ...games[gameIndex],
-      endedAt: Date.now()
-    }
-    return games[gameIndex]
   },
   addPlayer: async (data: { userId: string; boardId: string; color: 'white' | 'black' }) => {
     const gameIndex = games.findIndex(item => item.id === data.boardId)
@@ -99,6 +94,25 @@ const chessApi = {
       castling: data.castling,
       startedAt: games[gameIndex].startedAt || Date.now(),
       history: [...games[gameIndex].history, data.historyMove]
+    }
+    return games[gameIndex]
+  },
+
+  endGame: async (data: {
+    boardId: string
+    winner: string | null
+    result: string
+  }) => {
+    const { boardId, winner, result } = data
+    const gameIndex = games.findIndex(item => item.id === boardId)
+
+    if (gameIndex < 0) return null
+
+    games[gameIndex] = {
+      ...games[gameIndex],
+      winner,
+      result,
+      endedAt: Date.now()
     }
     return games[gameIndex]
   }

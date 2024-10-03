@@ -53,6 +53,17 @@ export const chessRouter = {
     if (refreshedGame) ee.emit(`refreshChessGame_${boardId}`)
     return refreshedGame
   }),
+  giveUp: protectedProcedure.input(z.object({ boardId: z.string() })).mutation(async opts => {
+    const { user } = opts.ctx
+    const { boardId } = opts.input
+
+    const game = await chessRepo.findChessById(boardId)
+    if (!game) return false
+
+    const refreshedGame = await chessRepo.giveUpGame(boardId, user!.id)
+    if (refreshedGame) ee.emit(`refreshChessGame_${boardId}`)
+    return refreshedGame
+  }),
   movePiece: protectedProcedure
     .input(
       z.object({

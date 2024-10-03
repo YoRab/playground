@@ -22,6 +22,8 @@ export type ChessGame = {
   createdAt: number
   startedAt: number | null
   endedAt: number | null
+  winner?: User | undefined
+  result?: string | undefined
 }
 
 export type HistoryItem = {

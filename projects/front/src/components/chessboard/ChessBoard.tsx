@@ -46,6 +46,12 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
     }
   })
 
+  const giveUpMutation = trpc.protected.giveUp.useMutation({
+    onSuccess: data => {
+      console.log('giveUp', data)
+    }
+  })
+
   const handleBoardClick = () => {
     setDragDatas({
       active: undefined,
@@ -90,6 +96,10 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
     if (!shallPromote) return
     movePieceMutation.mutate({ boardId, pieceId: shallPromote.pieceId, newPosition: shallPromote.position, promotion: type })
     setShallPromote(undefined)
+  }
+
+  const giveUp = () => {
+    giveUpMutation.mutate({ boardId })
   }
 
   const handleDropOnCell = (row: number, col: number) => {
@@ -142,6 +152,7 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
                       handleDropOnCell={handleDropOnCell}
                       playerTurn={boardData.playerTurn}
                       userColor={userColor}
+                      isGameEnded={!!boardData.endedAt}
                     />
                   )
                 })}
@@ -200,6 +211,11 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
             })}
         </div>
         <div className='history'>
+          {!boardData.endedAt && boardData.startedAt && !!userColor && (
+            <button type='button' className='button' onClick={giveUp}>
+              Abandonner
+            </button>
+          )}
           <ul>
             {boardData.history.flatMap((move, index) => {
               if (index % 2 === 0) {
@@ -212,6 +228,19 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
               }
               return []
             })}
+            {boardData.result === 'pat' ? (
+              <li>Pat</li>
+            ) : boardData.result === 'win' ? (
+              <li>Victoire de {boardData.winner?.pseudo}</li>
+            ) : boardData.result === 'giveup' ? (
+              <>
+                <li>
+                  Abandon de{' '}
+                  {boardData.players.black?.id === boardData.winner?.id ? boardData.players.white?.pseudo : boardData.players.black?.pseudo}
+                </li>
+                <li>Victoire de {boardData.winner?.pseudo}</li>
+              </>
+            ) : null}
           </ul>
         </div>
         <DragOverlay className='DragOverlay' dropAnimation={dragDatas.withDropAnim ? undefined : null}>

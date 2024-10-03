@@ -1,6 +1,6 @@
 import chessApi, { type DBChess } from '@back/api/chess'
 import userApi from '@back/api/user'
-import { encodeToAlgebraicNotation, getDroppableCells, moveCell } from '@back/utils/chess'
+import { encodeToAlgebraicNotation, getDroppableCells, isThereChess, moveCell } from '@back/utils/chess'
 import type { ChessGame, HistoryItem, PieceType, PieceTypeType } from '@common/chess'
 
 const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
@@ -12,6 +12,8 @@ const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
     black: game.players.black ? (await userApi.findById(game.players.black))! : undefined
   }
 
+  const winner = game.winner ? (await userApi.findById(game.winner))! : undefined
+
   const droppableCells = game.pieces.reduce(
     (prev, current) => {
       prev[current.id] = getDroppableCells({ boardData: game, active: current }).map(move => move.to)
@@ -20,7 +22,7 @@ const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
     {} as ChessGame['droppableCells']
   )
 
-  const { id, sessionId, playerTurn, history, board, pieces, createdAt, startedAt, endedAt } = game
+  const { id, sessionId, playerTurn, history, board, pieces, createdAt, startedAt, endedAt, result } = game
 
   return {
     id,
@@ -34,7 +36,9 @@ const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
     endedAt,
     owner,
     players,
-    droppableCells
+    droppableCells,
+    winner,
+    result: result ?? undefined
   }
 }
 
@@ -75,7 +79,7 @@ export const deleteGame = async (boardId: string, ownerId: string): Promise<bool
   return true
 }
 
-export const endGame = async (boardId: string, ownerId: string): Promise<boolean> => {
+export const giveUpGame = async (boardId: string, ownerId: string): Promise<boolean> => {
   const game = await chessApi.findById(boardId)
   if (!game) return false
 
@@ -85,7 +89,10 @@ export const endGame = async (boardId: string, ownerId: string): Promise<boolean
   if (game.startedAt === null) return false
   if (game.endedAt !== null) return false
 
-  await chessApi.end({ boardId })
+  const winner = game.players.black === ownerId ? game.players.white! : game.players.black!
+
+  await chessApi.endGame({ boardId, winner: winner, result: 'giveup' })
+
   return true
 }
 
@@ -213,6 +220,20 @@ export const movePiece = async (
     newPosition
   })
 
-  //TODO check for endgame
-  return (await resolveUsers(refreshedGame!)) ?? false
+  const nextGame = (await resolveUsers(refreshedGame!))!
+
+  const otherPlayerColor = playerColor === 'white' ? 'black' : 'white'
+
+  const nbMoves = Object.keys(nextGame.droppableCells).reduce(
+    (prev, current) => prev + (current.at(0)! === otherPlayerColor.at(0) ? nextGame.droppableCells[current].length : 0),
+    0
+  )
+
+  if (nbMoves === 0) {
+    const isNowChess = isThereChess(refreshedGame!, otherPlayerColor)
+    const endedGame = await chessApi.endGame({ boardId, winner: isNowChess ? userId : null, result: isNowChess ? 'win' : 'pat' })
+    return (await resolveUsers(endedGame!))!
+  }
+
+  return nextGame
 }

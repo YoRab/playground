@@ -9,6 +9,7 @@ const COL_KEY = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
 const Cell = ({
   playerTurn,
+  isGameEnded = false,
   userColor,
   piece,
   id,
@@ -19,6 +20,7 @@ const Cell = ({
   handleDropOnCell
 }: {
   playerTurn: 'white' | 'black'
+  isGameEnded?: boolean
   userColor: 'white' | 'black' | undefined
   piece: PieceType | undefined
   id: string
@@ -37,7 +39,7 @@ const Cell = ({
     }
   }
   const isUserTurn = userColor === playerTurn
-  const disabled = !isUserTurn || (piece && piece?.color !== playerTurn)
+  const disabled = isGameEnded || !isUserTurn || (piece && piece?.color !== playerTurn)
 
   return (
     <div
