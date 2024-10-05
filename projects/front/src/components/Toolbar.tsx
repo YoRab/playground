@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import './Toolbar.css'
 import useLocalStorage from '@front/hooks/useLocalStorage'
 import { trpc } from '@front/utils/trpc'
@@ -22,8 +22,17 @@ const Toolbar = ({ screen = '' }) => {
     logoutMutation.mutate()
   }
 
+  const [currentTheme, setCurrentTheme] = useState(localStorage.getItem('theme'))
+
+  const setTheme = (theme: string) => {
+    if (theme) localStorage.setItem('theme', theme)
+    else localStorage.removeItem('theme')
+    document.querySelector('html')!.className = theme
+    setCurrentTheme(theme)
+  }
+
   return (
-    <nav className='navbar is-black' aria-label='main navigation'>
+    <nav className='navbar' aria-label='main navigation'>
       <div className='navbar-brand'>
         <a className='navbar-item' href='/'>
           <img src='./vite.svg' alt='logo' />
@@ -50,6 +59,46 @@ const Toolbar = ({ screen = '' }) => {
             </div>
             <div className='navbar-item'>
               <div className='buttons'>
+                {/* <select onChange={e => setTheme(e.target.value)}> */}
+                <div className='dropdown is-right is-hoverable'>
+                  <div className='dropdown-trigger'>
+                    <button type='button' className='button' aria-haspopup='true' aria-controls='dropdown-menu2'>
+                      <span>{currentTheme === 'theme-light' ? 'clair' : currentTheme === 'theme-dark' ? 'sombre' : 'système'}</span>
+                    </button>
+                  </div>
+
+                  <div className='dropdown-menu' id='dropdown-menu2'>
+                    <div className='dropdown-content'>
+                      <a
+                        href='#'
+                        className={`dropdown-item${currentTheme === 'theme-light' ? ' is-active' : ''}`}
+                        onClick={() => {
+                          setTheme('theme-light')
+                        }}
+                      >
+                        <p>Thème clair</p>
+                      </a>
+                      <a
+                        href='#'
+                        className={`dropdown-item${currentTheme === 'theme-dark' ? ' is-active' : ''}`}
+                        onClick={() => {
+                          setTheme('theme-dark')
+                        }}
+                      >
+                        <p>Thème sombre</p>
+                      </a>
+                      <a
+                        href='#'
+                        className={`dropdown-item${!currentTheme ? ' is-active' : ''}`}
+                        onClick={() => {
+                          setTheme('')
+                        }}
+                      >
+                        <p>Thème du système</p>
+                      </a>
+                    </div>
+                  </div>
+                </div>
                 <button type='button' className='button' onClick={logout}>
                   Déconnexion
                 </button>
