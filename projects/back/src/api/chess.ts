@@ -1,11 +1,11 @@
-import { PIECES, encodeToAlgebraicNotation, getInitBoard, moveCell } from '@back/utils/chess'
-import type { HistoryItem, PieceType } from '@common/chess'
+import { PIECES, getInitBoard } from '@back/utils/chess'
+import type { PieceType } from '@common/chess'
 import { v4 as uuidv4 } from 'uuid'
 export type DBChess = {
   id: string
   sessionId: string
   owner: string
-  players: { white?: string | undefined; black?: string | undefined }
+  players: { white?: { type: 'human' | 'AI'; id: string } | undefined; black?: { type: 'human' | 'AI'; id: string } | undefined }
   playerTurn: 'white' | 'black'
   history: { move: string; time: number }[]
   board: (string | null)[][]
@@ -14,11 +14,19 @@ export type DBChess = {
   createdAt: number
   startedAt: number | null
   endedAt: number | null
-  winner: string | null
+  winner: { type: 'human' | 'AI'; id: string } | null
   result: string | null
 }
 
+export type DBChessAI = {
+  id: string
+  pseudo: string
+  type: 'AI'
+  state: 'ready' | 'notReady'
+}
+
 let games: DBChess[] = []
+const AIs: DBChessAI[] = []
 
 const chessApi = {
   findMany: async () => games,
@@ -48,14 +56,14 @@ const chessApi = {
     games = games.filter(game => game.id !== data.boardId)
     return true
   },
-  addPlayer: async (data: { userId: string; boardId: string; color: 'white' | 'black' }) => {
+  addPlayer: async (data: { userId: string; userType: 'human' | 'AI'; boardId: string; color: 'white' | 'black' }) => {
     const gameIndex = games.findIndex(item => item.id === data.boardId)
 
     if (gameIndex < 0) return null
 
     games[gameIndex] = {
       ...games[gameIndex],
-      players: { ...games[gameIndex].players, [data.color]: data.userId }
+      players: { ...games[gameIndex].players, [data.color]: { type: data.userType, id: data.userId } }
     }
     return games[gameIndex]
   },
@@ -100,7 +108,7 @@ const chessApi = {
 
   endGame: async (data: {
     boardId: string
-    winner: string | null
+    winner: { type: 'human' | 'AI'; id: string } | null
     result: string
   }) => {
     const { boardId, winner, result } = data
@@ -115,7 +123,27 @@ const chessApi = {
       endedAt: Date.now()
     }
     return games[gameIndex]
-  }
+  },
+  findAIMany: async () => AIs,
+
+  findAIById: async (id: string) => AIs.find(ai => ai.id === id),
+  findAIByPseudo: async (pseudo: string) => AIs.find(ai => ai.pseudo === pseudo),
+  createAI: async (data: { pseudo: string }) => {
+    const ai = { id: uuidv4(), type: 'AI', state: 'notReady', ...data } as const
+    AIs.push(ai)
+    return ai
+  },
+  updateAIState: async (data: { id: string; state: 'ready' | 'notReady' }) => {
+    const aiIndex = AIs.findIndex(item => item.id === data.id)
+    if (aiIndex < 0) return
+    const updatedAi = {
+      ...AIs[aiIndex],
+      state: data.state
+    }
+    AIs[aiIndex] = updatedAi
+    return updatedAi
+  },
+  findReadyAIs: async () => AIs.filter(ai => ai.state === 'ready')
 }
 
 export default chessApi

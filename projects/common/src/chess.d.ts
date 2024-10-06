@@ -9,11 +9,20 @@ export type PieceType = {
   id: string
 }
 
+export type ChessAI = {
+  id: string
+  pseudo: string
+  type: 'AI'
+  state: 'ready' | 'notReady'
+}
+
+export type ChessUser = User | ChessAI
+
 export type ChessGame = {
   id: string
   sessionId: string
   owner: User
-  players: { white?: User | undefined; black?: User | undefined }
+  players: { white?: ChessUser | undefined; black?: ChessUser | undefined }
   playerTurn: 'white' | 'black'
   history: { move: string; time: number }[]
   board: (string | null)[][]
@@ -22,7 +31,7 @@ export type ChessGame = {
   createdAt: number
   startedAt: number | null
   endedAt: number | null
-  winner?: User | undefined
+  winner?: ChessUser | undefined
   result?: string | undefined
 }
 

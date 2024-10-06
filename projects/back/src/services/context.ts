@@ -1,24 +1,55 @@
+import { PERMISSION_CHESS_IA } from '@back/constants/permissions'
+import { createAI, findAIByPseudo } from '@back/repository/chess'
 import { decodeJwtToken } from '@back/utils/auth'
+import type { User } from '@common/model'
 import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone'
 import type { CreateWSSContextFnOptions } from '@trpc/server/adapters/ws'
 
-// This is how you initialize a context for the server
-export const createContext = async ({ req, info }: CreateHTTPContextOptions | CreateWSSContextFnOptions) => {
-  async function getUserFromHeader() {
-    if (req.headers.authorization) {
-      const user = await decodeJwtToken(req.headers.authorization.split(' ')[1])
-      return user
+export const createContext = async ({
+  req,
+  info
+}: CreateHTTPContextOptions | CreateWSSContextFnOptions): Promise<{
+  permissions: string[] | null
+  user: User | null
+}> => {
+  const getPermissionsFromHeader = async () => {
+    const apiKey = req.headers['x-api-key'] ?? info.connectionParams?.apiKey
+
+    if (apiKey === PERMISSION_CHESS_IA) {
+      return [PERMISSION_CHESS_IA]
     }
-    if (info.connectionParams?.token) {
-      const user = await decodeJwtToken(info.connectionParams?.token)
-      return user
-    }
+
     return null
   }
 
-  const user = await getUserFromHeader()
+  const getUserFromHeader = async (permissions: string[] | null) => {
+    if (permissions?.includes(PERMISSION_CHESS_IA)) {
+      const name = info.connectionParams?.name
+
+      if (name) {
+        const ai = await findAIByPseudo(name)
+        if (!ai) {
+          return await createAI(name)
+        }
+        return ai
+      }
+    } else {
+      const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : info.connectionParams?.token
+
+      if (token) {
+        const user = await decodeJwtToken(token)
+        return user
+      }
+    }
+
+    return null
+  }
+
+  const permissions = await getPermissionsFromHeader()
+  const user = await getUserFromHeader(permissions)
 
   return {
+    permissions,
     user
   }
 }

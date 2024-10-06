@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Cell from './Cell'
 import './ChessBoard.css'
-import type { ChessGame, PieceType, PieceTypeType } from '@common/chess'
+import type { ChessGame, PieceType } from '@common/chess'
 import type { Session, User } from '@common/model'
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent } from '@dnd-kit/core'
 import Loading from '@front/components/Loading'
@@ -9,6 +9,7 @@ import { trpc } from '@front/utils/trpc'
 import Piece from './Piece'
 
 const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; boardId: string }) => {
+  const [modeSelection, setModeSelection] = useState<{ isMulti: boolean | undefined; ai?: string | undefined }>({ isMulti: undefined })
   const [shallPromote, setShallPromote] = useState<{ pieceId: string; position: [number, number] } | undefined>(undefined)
   const [boardData, setBoardData] = useState<ChessGame>()
   const [dragDatas, setDragDatas] = useState<{
@@ -20,6 +21,11 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
     withDropAnim: true,
     enabledCells: []
   })
+
+  const isOwner = user.id === session.owner?.id
+
+  const readyAIsQuery = trpc.protected.findReadyAIs.useQuery()
+  const readyAIs = readyAIsQuery.data
 
   trpc.protected.watchChessGame.useSubscription(
     { boardId },
@@ -116,12 +122,13 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
   }
 
   const onJoinGame = (color: 'white' | 'black') => {
-    addPlayerMutation.mutate({ boardId, color })
+    addPlayerMutation.mutate({ boardId, color, ai: modeSelection.ai })
   }
 
   const userColor = boardData?.players.white?.id === user.id ? 'white' : boardData?.players.black?.id === user.id ? 'black' : undefined
 
   const needPlayer = boardData?.players.white === undefined || boardData?.players.black === undefined
+  const needBothPlayer = boardData?.players.white === undefined && boardData?.players.black === undefined
 
   if (!boardData) return <Loading />
   return (
@@ -164,8 +171,24 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
                 <div className='modal-background' />
                 <div className='modal-card'>
                   <section className='modal-card-body'>
-                    {userColor ? (
+                    {userColor || (needBothPlayer && !isOwner) ? (
                       "En attente d'un joueur"
+                    ) : isOwner && modeSelection.isMulti === undefined ? (
+                      <>
+                        <button className='button' type='button' onClick={() => setModeSelection({ isMulti: true })}>
+                          Jouer contre un humain
+                        </button>
+                        {readyAIs?.map(readyAI => (
+                          <button
+                            key={readyAI.id}
+                            className='button'
+                            type='button'
+                            onClick={() => setModeSelection({ isMulti: false, ai: readyAI.id })}
+                          >
+                            Jouer contre {readyAI.pseudo}
+                          </button>
+                        ))}
+                      </>
                     ) : (
                       <>
                         <button className='button' type='button' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>

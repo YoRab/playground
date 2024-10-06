@@ -1,18 +1,28 @@
 import chessApi, { type DBChess } from '@back/api/chess'
 import userApi from '@back/api/user'
 import { encodeToAlgebraicNotation, getDroppableCells, isThereChess, moveCell } from '@back/utils/chess'
-import type { ChessGame, HistoryItem, PieceType, PieceTypeType } from '@common/chess'
+import type { ChessAI, ChessGame, PieceType, PieceTypeType } from '@common/chess'
+import type { User } from '@common/model'
 
-const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
+const resolveUser = async (user?: { type: 'human' | 'AI'; id: string } | undefined | null): Promise<User | undefined> => {
+  if (!user) return undefined
+
+  if (user.type === 'human') {
+    return (await userApi.findById(user.id))!
+  }
+  return (await chessApi.findAIById(user.id))!
+}
+
+const resolveGame = async (game?: DBChess): Promise<ChessGame | undefined> => {
   if (game === undefined) return undefined
 
   const owner = (await userApi.findById(game.owner))!
   const players = {
-    white: game.players.white ? (await userApi.findById(game.players.white))! : undefined,
-    black: game.players.black ? (await userApi.findById(game.players.black))! : undefined
+    white: await resolveUser(game.players.white),
+    black: await resolveUser(game.players.black)
   }
 
-  const winner = game.winner ? (await userApi.findById(game.winner))! : undefined
+  const winner = await resolveUser(game.winner)
 
   const droppableCells = game.pieces.reduce(
     (prev, current) => {
@@ -44,13 +54,13 @@ const resolveUsers = async (game?: DBChess): Promise<ChessGame | undefined> => {
 
 export const findMany = async (): Promise<ChessGame[]> => {
   const games = await chessApi.findMany()
-  const promises = games.map(async session => (await resolveUsers(session))!)
+  const promises = games.map(async session => (await resolveGame(session))!)
   return Promise.all(promises)
 }
 
 export const findChessById = async (id: string): Promise<ChessGame | undefined> => {
   const game = await chessApi.findById(id)
-  return resolveUsers(game)
+  return resolveGame(game)
 }
 
 export const createGame = async (owner: string, sessionId: string): Promise<ChessGame | undefined> => {
@@ -59,7 +69,7 @@ export const createGame = async (owner: string, sessionId: string): Promise<Ches
     return
   }
   const game = await chessApi.create({ sessionId, owner })
-  return resolveUsers(game)
+  return resolveGame(game)
 }
 
 export const deleteGame = async (boardId: string, ownerId: string): Promise<boolean> => {
@@ -89,34 +99,37 @@ export const giveUpGame = async (boardId: string, ownerId: string): Promise<bool
   if (game.startedAt === null) return false
   if (game.endedAt !== null) return false
 
-  const winner = game.players.black === ownerId ? game.players.white! : game.players.black!
+  const winner = game.players.black?.type === 'human' && game.players.black?.id === ownerId ? game.players.white! : game.players.black!
 
   await chessApi.endGame({ boardId, winner: winner, result: 'giveup' })
 
   return true
 }
 
-export const addPlayer = async (boardId: string, color: 'white' | 'black', userId: string): Promise<ChessGame | false> => {
+export const addPlayer = async (boardId: string, color: 'white' | 'black', userId: string, userType: 'human' | 'AI'): Promise<ChessGame | false> => {
   const game = await chessApi.findById(boardId)
   if (!game) return false
 
-  const userFound = await userApi.findById(userId)
+  const userFound = userType === 'human' ? await userApi.findById(userId) : await chessApi.findAIById(userId)
   if (!userFound) return false
 
   if (game.players[color] !== undefined) return false
-  if (game.players[color === 'white' ? 'black' : 'white'] === userId) return false
+  if (game.players[color === 'white' ? 'black' : 'white']?.type === userType && game.players[color === 'white' ? 'black' : 'white']?.id === userId)
+    return false
 
   const refreshedGame = await chessApi.addPlayer({
     boardId,
     userId,
+    userType,
     color
   })
-  return (await resolveUsers(refreshedGame!)) || false
+  return (await resolveGame(refreshedGame!)) || false
 }
 
 export const movePiece = async (
   boardId: string,
   userId: string,
+  userType: 'human' | 'AI',
   pieceId: PieceType['id'],
   newPosition: [number, number],
   promotion: PieceTypeType | undefined
@@ -124,18 +137,24 @@ export const movePiece = async (
   const game = await chessApi.findById(boardId)
   if (!game) return false
 
-  const userFound = await userApi.findById(userId)
+  const userFound = userType === 'human' ? await userApi.findById(userId) : await chessApi.findAIById(userId)
   if (!userFound) return false
 
   if (game.endedAt !== null) return false
 
-  const playerColor = game.players.white === userId ? 'white' : game.players.black === userId ? 'black' : false
+  const playerColor =
+    game.players.white?.type === userType && game.players.white.id === userId
+      ? 'white'
+      : game.players.black?.type === userType && game.players.black.id === userId
+        ? 'black'
+        : false
   if (!playerColor) return false
 
   if (game.playerTurn !== playerColor) return false
 
   const piece = game.pieces.find(piece => piece.id === pieceId)
   if (!piece) return false
+  if (piece.color !== playerColor) return false
 
   const droppableCells = getDroppableCells({ boardData: game, active: piece })
 
@@ -220,7 +239,7 @@ export const movePiece = async (
     newPosition
   })
 
-  const nextGame = (await resolveUsers(refreshedGame!))!
+  const nextGame = (await resolveGame(refreshedGame!))!
 
   const otherPlayerColor = playerColor === 'white' ? 'black' : 'white'
 
@@ -231,9 +250,50 @@ export const movePiece = async (
 
   if (nbMoves === 0) {
     const isNowChess = isThereChess(refreshedGame!, otherPlayerColor)
-    const endedGame = await chessApi.endGame({ boardId, winner: isNowChess ? userId : null, result: isNowChess ? 'win' : 'pat' })
-    return (await resolveUsers(endedGame!))!
+    const endedGame = await chessApi.endGame({
+      boardId,
+      winner: isNowChess ? { type: userType, id: userId } : null,
+      result: isNowChess ? 'win' : 'pat'
+    })
+    return (await resolveGame(endedGame!))!
   }
 
   return nextGame
+}
+
+export const findAIMany = async (): Promise<ChessAI[]> => {
+  const ais = await chessApi.findAIMany()
+  return ais
+}
+
+export const findAIById = async (id: string): Promise<ChessAI | undefined> => {
+  const ai = await chessApi.findAIById(id)
+  return ai
+}
+
+export const findAIByPseudo = async (pseudo: string): Promise<ChessAI | undefined> => {
+  const ai = await chessApi.findAIByPseudo(pseudo)
+  return ai
+}
+export const findReadyAIs = async (): Promise<ChessAI[]> => {
+  const ai = await chessApi.findReadyAIs()
+  return ai
+}
+
+export const createAI = async (name: string): Promise<ChessAI | null> => {
+  const aiFound = await chessApi.findAIByPseudo(name)
+  if (aiFound) return null
+  return chessApi.createAI({ pseudo: name })
+}
+
+export const startAI = async (id: string): Promise<ChessAI | null> => {
+  const startedAI = await chessApi.updateAIState({ id, state: 'ready' })
+  if (!startedAI) return null
+  return startedAI
+}
+
+export const stopAI = async (id: string): Promise<ChessAI | null> => {
+  const startedAI = await chessApi.updateAIState({ id, state: 'notReady' })
+  if (!startedAI) return null
+  return startedAI
 }

@@ -59,7 +59,7 @@ const BoardInner = ({ user, session }: { user: User; session: Session }) => {
           })}
         </ul>
       </div>
-      {activeBoard && (
+      {activeBoard && isOwner && (
         <div>
           <button type='button' className='button is-danger' onClick={() => deleteBoard(activeBoard.id)}>
             Delete board
