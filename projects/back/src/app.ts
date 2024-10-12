@@ -3,13 +3,13 @@ import { createHTTPServer } from '@trpc/server/adapters/standalone'
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
 import cors from 'cors'
 import ws from 'ws'
-import appRouter from './router'
+import appRouter, { type ClientRouter } from './router'
 
 const port = +(process.env.PORT || 4001)
 
 // Export type router type signature,
 // NOT the router itself.
-export type AppRouter = typeof appRouter
+export type AppRouter = ClientRouter
 
 const httpServer = createHTTPServer({
   middleware: cors(),

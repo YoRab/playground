@@ -1,4 +1,4 @@
-import * as wordRepo from '@back/repository/word'
+import * as wordRepo from '@back/modules/word/wordRepo'
 import { ee, protectedProcedure } from '@back/services/trpc'
 import type { Word } from '@common/word'
 import { observable } from '@trpc/server/observable'

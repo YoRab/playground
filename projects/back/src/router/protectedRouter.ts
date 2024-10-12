@@ -1,12 +1,9 @@
 import * as authRepo from '@back/repository/auth'
-import * as chessRepo from '@back/repository/chess'
+import * as chessRepo from '@back/modules/chess/chessRepo'
 import * as sessionRepo from '@back/repository/game'
-import * as paintRepo from '@back/repository/reactPaint'
+import * as paintRepo from '@back/modules/paint/paintRepo'
 import * as userRepo from '@back/repository/user'
-import * as wordRepo from '@back/repository/word'
-import { chessRouter } from '@back/router/chessRouter'
-import reactPaintRouter from '@back/router/reactPaintRouter'
-import wordRouter from '@back/router/wordRouter'
+import * as wordRepo from '@back/modules/word/wordRepo'
 import { ee, protectedProcedure, router } from '@back/services/trpc'
 import type { Session } from '@common/model'
 import { observable } from '@trpc/server/observable'
@@ -58,7 +55,6 @@ const protectedRouter = router({
 
       return observable<Session>(emit => {
         const onRefreshSession = async () => {
-          console.log('refreh session')
           const refreshedSession = await sessionRepo.findSessionById(sessionId)
           refreshedSession && emit.next(refreshedSession)
         }
@@ -149,10 +145,7 @@ const protectedRouter = router({
       const hasBeenDeleted = await sessionRepo.removeBoard(sessionId, boardId, user!.id)
       if (hasBeenDeleted) ee.emit(`removeBoard_${sessionId}`)
       return hasBeenDeleted
-    }),
-  ...chessRouter,
-  ...wordRouter,
-  ...reactPaintRouter
+    })
 })
 
 export default protectedRouter

@@ -1,4 +1,4 @@
-import * as reactPaintRepo from '@back/repository/reactPaint'
+import * as reactPaintRepo from '@back/modules/paint/paintRepo'
 import { ee, protectedProcedure } from '@back/services/trpc'
 import type { ReactPaint } from '@common/reactPaint'
 import { observable } from '@trpc/server/observable'

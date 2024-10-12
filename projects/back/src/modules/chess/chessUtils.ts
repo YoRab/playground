@@ -1,5 +1,5 @@
-import type { DBChess } from '@back/api/chess'
-import type { HistoryItem, PieceType, PieceTypeType } from '@common/chess'
+import type { DBChess } from '@back/modules/chess/chessApi'
+import type { HistoryItem, PieceType } from '@common/chess'
 
 const PIECE_ORDER = ['r1', 'k1', 'b1', 'queen', 'king', 'b2', 'k2', 'r2']
 

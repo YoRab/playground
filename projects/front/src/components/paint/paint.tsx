@@ -12,7 +12,7 @@ const Paint = ({ user, session, boardId }: { user: User; session: Session; board
   const tempShapes = useRef<string | undefined>('[]')
   const [error, setError] = useState<string | undefined>()
 
-  trpc.protected.watchPaint.useSubscription(
+  trpc.paint.watchPaint.useSubscription(
     { boardId },
     {
       onData(paint) {
@@ -29,7 +29,7 @@ const Paint = ({ user, session, boardId }: { user: User; session: Session; board
     }
   )
 
-  const setPaintMutation = trpc.protected.setPaint.useMutation()
+  const setPaintMutation = trpc.paint.setPaint.useMutation()
 
   const saveAnnotation = useCallback(() => {
     if (!apiRef.current) return

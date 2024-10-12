@@ -24,10 +24,10 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
 
   const isOwner = user.id === session.owner?.id
 
-  const readyAIsQuery = trpc.protected.findReadyAIs.useQuery()
+  const readyAIsQuery = trpc.chess.findReadyAIs.useQuery()
   const readyAIs = readyAIsQuery.data
 
-  trpc.protected.watchChessGame.useSubscription(
+  trpc.chess.watchChessGame.useSubscription(
     { boardId },
     {
       onData(data) {
@@ -40,19 +40,19 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
     }
   )
 
-  const movePieceMutation = trpc.protected.movePiece.useMutation({
+  const movePieceMutation = trpc.chess.movePiece.useMutation({
     onSuccess: data => {
       console.log('piece moved', data)
     }
   })
 
-  const addPlayerMutation = trpc.protected.addPlayer.useMutation({
+  const addPlayerMutation = trpc.chess.addPlayer.useMutation({
     onSuccess: data => {
       console.log('addPlayer', data)
     }
   })
 
-  const giveUpMutation = trpc.protected.giveUp.useMutation({
+  const giveUpMutation = trpc.chess.giveUp.useMutation({
     onSuccess: data => {
       console.log('giveUp', data)
     }

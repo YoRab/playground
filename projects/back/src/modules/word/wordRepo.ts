@@ -1,5 +1,5 @@
 import userApi from '@back/api/user'
-import wordApi, { type DBWord } from '@back/api/word'
+import wordApi, { type DBWord } from '@back/modules/word/wordApi'
 import type { Word } from '@common/word'
 
 const resolveUsers = async (word?: DBWord): Promise<Word | undefined> => {

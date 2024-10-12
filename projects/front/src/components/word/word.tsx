@@ -7,7 +7,7 @@ const Word = ({ user, session, boardId }: { user: User; session: Session; boardI
   const contentEditableRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | undefined>()
 
-  trpc.protected.watchWord.useSubscription(
+  trpc.word.watchWord.useSubscription(
     { wordId: boardId },
     {
       onData(data) {
@@ -26,7 +26,7 @@ const Word = ({ user, session, boardId }: { user: User; session: Session; boardI
     }
   )
 
-  const setWordMutation = trpc.protected.setWord.useMutation()
+  const setWordMutation = trpc.word.setWord.useMutation()
 
   const onChangeWord = (e: FormEvent<HTMLElement>) => {
     setWordMutation.mutate({ wordId: boardId, value: (e.target as HTMLElement).textContent ?? '' })

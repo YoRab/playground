@@ -1,4 +1,4 @@
-import reactPaintApi, { type DBReactPaint } from '@back/api/reactPaint'
+import reactPaintApi, { type DBReactPaint } from '@back/modules/paint/paintApi'
 import userApi from '@back/api/user'
 import type { ReactPaint } from '@common/reactPaint'
 

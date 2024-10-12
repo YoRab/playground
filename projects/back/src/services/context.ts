@@ -1,5 +1,5 @@
-import { PERMISSION_CHESS_IA } from '@back/constants/permissions'
-import { createAI, findAIByPseudo } from '@back/repository/chess'
+import { PERMISSION_CHESS_IA, PERMISSIONS } from '@back/constants/permissions'
+import { createAI, findAIByPseudo } from '@back/modules/chess/AI/chessAIRepo'
 import { decodeJwtToken } from '@back/utils/auth'
 import type { User } from '@common/model'
 import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone'
@@ -15,11 +15,10 @@ export const createContext = async ({
   const getPermissionsFromHeader = async () => {
     const apiKey = req.headers['x-api-key'] ?? info.connectionParams?.apiKey
 
-    if (apiKey === PERMISSION_CHESS_IA) {
-      return [PERMISSION_CHESS_IA]
-    }
+    if (!apiKey) return []
+    const apiKeys = Array.isArray(apiKey) ? apiKey : [apiKey]
 
-    return null
+    return apiKeys.map(key => PERMISSIONS.get(key)).filter(key => key !== undefined)
   }
 
   const getUserFromHeader = async (permissions: string[] | null) => {
