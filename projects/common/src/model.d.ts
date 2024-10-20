@@ -3,9 +3,10 @@ export type User = {
   pseudo: string
 }
 
-export type Session = {
+export type Room = {
   id: string
   owner?: User | null
+  title: string
   watchers: User[]
   createdAt: number
   boards: { type: string; id: string }[]

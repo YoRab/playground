@@ -33,11 +33,11 @@ const resolveGame = async (game?: DBChess): Promise<ChessGame | undefined> => {
     {} as ChessGame['droppableCells']
   )
 
-  const { id, sessionId, playerTurn, history, board, pieces, createdAt, startedAt, endedAt, result } = game
+  const { id, roomId, playerTurn, history, board, pieces, createdAt, startedAt, endedAt, result } = game
 
   return {
     id,
-    sessionId,
+    roomId,
     playerTurn,
     history,
     board,
@@ -55,7 +55,7 @@ const resolveGame = async (game?: DBChess): Promise<ChessGame | undefined> => {
 
 export const findMany = async (): Promise<ChessGame[]> => {
   const games = await chessApi.findMany()
-  const promises = games.map(async session => (await resolveGame(session))!)
+  const promises = games.map(async room => (await resolveGame(room))!)
   return Promise.all(promises)
 }
 
@@ -64,12 +64,12 @@ export const findChessById = async (id: string): Promise<ChessGame | undefined> 
   return resolveGame(game)
 }
 
-export const createGame = async (owner: string, sessionId: string): Promise<ChessGame | undefined> => {
+export const createGame = async (owner: string, roomId: string): Promise<ChessGame | undefined> => {
   const userFound = await userRepo.findUserById(owner)
   if (!userFound) {
     return
   }
-  const game = await chessApi.create({ sessionId, owner })
+  const game = await chessApi.create({ roomId: roomId, owner })
   return resolveGame(game)
 }
 

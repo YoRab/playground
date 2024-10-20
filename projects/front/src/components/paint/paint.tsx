@@ -1,12 +1,12 @@
 import React, { useCallback, useRef, useState } from 'react'
 import './paint.css'
-import type { Session, User } from '@common/model'
+import type { Room, User } from '@common/model'
 import { trpc } from '@front/utils/trpc'
 import ReactPaint from '@yorab/react-paint'
 
 type AnnotationsType = ReturnType<NonNullable<NonNullable<Parameters<typeof ReactPaint>[0]['apiRef']>['current']>['getCurrentData']>['shapes']
 
-const Paint = ({ user, session, boardId }: { user: User; session: Session; boardId: string }) => {
+const Paint = ({ user, room, boardId }: { user: User; room: Room; boardId: string }) => {
   const apiRef: Parameters<typeof ReactPaint>[0]['apiRef'] = useRef()
   const [shapes, setShapes] = useState<AnnotationsType>(undefined)
   const tempShapes = useRef<string | undefined>('[]')

@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 export type DBReactPaint = {
   id: string
-  sessionId: string
+  roomId: string
   owner: string
   data: unknown
   createdAt: number
@@ -16,7 +16,7 @@ const reactPaintApi = {
 
   findById: async (id: string) => reactPaints.find(reactPaint => reactPaint.id === id),
 
-  create: async (data: { sessionId: string; owner: string }) => {
+  create: async (data: { roomId: string; owner: string }) => {
     const reactPaint: DBReactPaint = {
       id: uuidv4(),
       ...data,

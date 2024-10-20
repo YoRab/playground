@@ -14,7 +14,7 @@ const resolveUsers = async (word?: DBWord): Promise<Word | undefined> => {
 
 export const findMany = async (): Promise<Word[]> => {
   const words = await wordApi.findMany()
-  const promises = words.map(async session => (await resolveUsers(session))!)
+  const promises = words.map(async room => (await resolveUsers(room))!)
   return Promise.all(promises)
 }
 
@@ -23,12 +23,12 @@ export const findWordById = async (id: string): Promise<Word | undefined> => {
   return resolveUsers(game)
 }
 
-export const createWord = async (owner: string, sessionId: string): Promise<Word | undefined> => {
+export const createWord = async (owner: string, roomId: string): Promise<Word | undefined> => {
   const userFound = await userApi.findById(owner)
   if (!userFound) {
     return
   }
-  const word = await wordApi.create({ sessionId, owner })
+  const word = await wordApi.create({ roomId, owner })
   return resolveUsers(word)
 }
 

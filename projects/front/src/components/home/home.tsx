@@ -1,75 +1,79 @@
 import React, { useState } from 'react'
 import './home.css'
-import type { Session } from '@common/model'
+import type { Room } from '@common/model'
 import { trpc } from '@front/utils/trpc'
 
 const Home = () => {
-  const [games, setGames] = useState<Session[]>([])
+  const [rooms, setRooms] = useState<Room[]>([])
 
   const userQuery = trpc.public.getMe.useQuery()
   const user = userQuery.data
 
-  trpc.public.onGetSessions.useSubscription(undefined, {
+  trpc.public.onGetRooms.useSubscription(undefined, {
     onData(games) {
-      console.log('received games', games)
-      setGames(games)
+      console.log('received rooms', games)
+      setRooms(games)
     },
     onError(err) {
       console.error('Subscription error:', err)
     }
   })
 
-  const addNewGameMutation = trpc.protected.addNewSession.useMutation({
+  const addNewGameMutation = trpc.protected.addNewRoom.useMutation({
     onSuccess: data => {
-      console.log('game created', data)
-      if (data) window.location.href = `#/board/${data.id}`
+      console.log('room created', data)
+      if (data) window.location.href = `#/room/${data.id}`
     }
   })
 
-  const deleteGameMutation = trpc.protected.deleteSession.useMutation({
+  const deleteRoomMutation = trpc.protected.deleteRoom.useMutation({
     onSuccess: data => {
-      console.log('game deleted', data)
+      console.log('room deleted', data)
     }
   })
 
-  const addNewGame = () => {
+  const addNewRoom = () => {
     addNewGameMutation.mutate()
   }
 
-  const deleteGame = (boardId: string) => {
-    deleteGameMutation.mutate({ game: boardId })
+  const deleteRoom = (room: string) => {
+    deleteRoomMutation.mutate({ room })
   }
 
   return (
-    <section className='section'>
-      <h1 className='title'>Sessions actives</h1>
-      <button type='button' className='button' onClick={addNewGame}>
-        Nouveau
-      </button>
-      <div>
-        {games?.map(game => {
+    <section className='section Home'>
+      <h1 className='title'>
+        Active rooms
+        <button type='button' className='button is-primary' onClick={addNewRoom}>
+          New
+        </button>
+      </h1>
+      <div className='grid'>
+        {rooms?.map(room => {
           return (
-            <div key={game.id} className='card'>
+            <div key={room.id} className='card cell '>
               <header className='card-header'>
-                <p className='card-header-title'>Session de chess</p>
+                <p className='card-header-title'>{room.title}</p>
               </header>
               <div className='card-content'>
                 <div>
-                  <span>Session de {game.owner?.pseudo ?? 'Inconnu (çà pue le bug)'}</span>
-                  <span>Créé le {new Date(game.createdAt).toString()}</span>
+                  Created on {new Date(room.createdAt).toUTCString()} by {room.owner?.pseudo ?? 'Unknown (çà pue le bug)'}
+                </div>
+                <div>
+                  <strong>{room.watchers.length} in the room</strong>
                 </div>
               </div>
               <footer className='card-footer'>
-                <div className='card-footer-item'>{game.watchers.length} observateurs</div>
                 <div className='card-footer-item'>
-                  <a type='button' className='button' href={`#/board/${game.id}`}>
-                    Consulter
-                  </a>
-                  {game.owner?.id === user?.id && (
-                    <button type='button' className='button is-danger' onClick={() => deleteGame(game.id)}>
-                      Supprimer
+                  {room.owner?.id === user?.id && (
+                    <button type='button' className='button is-danger' onClick={() => deleteRoom(room.id)}>
+                      Delete
                     </button>
                   )}
+                  <span className='Flex1' />
+                  <a type='button' className='button' href={`#/room/${room.id}`}>
+                    Join
+                  </a>
                 </div>
               </footer>
             </div>

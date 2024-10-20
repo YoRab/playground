@@ -3,7 +3,7 @@ import type { PieceType } from '@common/chess'
 import { v4 as uuidv4 } from 'uuid'
 export type DBChess = {
   id: string
-  sessionId: string
+  roomId: string
   owner: string
   players: { white?: { type: 'human' | 'AI'; id: string } | undefined; black?: { type: 'human' | 'AI'; id: string } | undefined }
   playerTurn: 'white' | 'black'
@@ -25,7 +25,7 @@ const chessApi = {
 
   findById: async (id: string) => games.find(game => game.id === id),
 
-  create: async (data: { sessionId: string; owner: string }) => {
+  create: async (data: { roomId: string; owner: string }) => {
     const game: DBChess = {
       id: uuidv4(),
       ...data,

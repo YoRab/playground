@@ -6,35 +6,40 @@ import Toolbar from './Toolbar'
 import Home from './home/home'
 import Login from './login/Login'
 import '@yorab/react-paint/react-paint.css'
-import Board from '@front/components/board/board'
+import Room from '@front/components/room/Room'
 import Footer from './Footer'
 import './Router.css'
 
-const WithToolbar = ({ Component, name }: { Component: () => JSX.Element; name: string }) => {
+const WithToolbar = ({
+  Component,
+  toolbar = false,
+  footer = false,
+  name
+}: { Component: () => JSX.Element; toolbar?: boolean; footer?: boolean; name: string }) => {
   return (
     <>
-      <Toolbar screen={name} />
+      {toolbar && <Toolbar screen={name} />}
       <section className='main'>
         <Component />
       </section>
-      <Footer />
+      {footer && <Footer />}
     </>
   )
 }
 
 const PATHS = {
-  board: {
-    elements: <WithToolbar Component={Board} name='Board' />,
+  room: {
+    elements: <WithToolbar toolbar Component={Room} name='Room' />,
     private: true,
     public: false
   },
   home: {
-    elements: <WithToolbar Component={Home} name='Home' />,
+    elements: <WithToolbar toolbar Component={Home} name='Home' />,
     private: true,
     public: false
   },
   login: {
-    elements: <WithToolbar Component={Login} name='Login' />,
+    elements: <WithToolbar toolbar Component={Login} name='Login' />,
     private: false,
     public: true
   }

@@ -2,4 +2,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 24px;
+  min-height: 0;
+}
+
+.Flex1 {
+  flex: 1;
+  min-height: 0;
+}
+
+.Flex2 {
+  flex: 2;
+  min-height: 0;
 }

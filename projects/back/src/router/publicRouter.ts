@@ -1,12 +1,12 @@
 import * as authRepo from '@back/repository/auth'
-import { findMany as findSessions } from '@back/repository/game'
+import { findMany as findRooms } from '@back/repository/room'
 import * as userRepo from '@back/repository/user'
 import { ee, publicProcedure, router } from '@back/services/trpc'
-import type { Session } from '@common/model'
+import type { Room } from '@common/model'
 import { observable } from '@trpc/server/observable'
 import { z } from 'zod'
 
-const REFRESH_SESSIONS_LIST_EVENTS = ['addNewSession', 'deleteSession']
+const REFRESH_ROOMS_LIST_EVENTS = ['addNewRoom', 'deleteRoom']
 
 const publicRouter = router({
   getMe: publicProcedure.query(opts => {
@@ -19,20 +19,20 @@ const publicRouter = router({
   login: publicProcedure.input(z.object({ pseudo: z.string() })).mutation(async opts => {
     return await authRepo.login(opts.input)
   }),
-  onGetSessions: publicProcedure.subscription(() => {
-    return observable<Session[]>(emit => {
-      const onRefreshSessions = async () => {
-        const sessions = await findSessions()
-        emit.next(sessions)
+  onGetRooms: publicProcedure.subscription(() => {
+    return observable<Room[]>(emit => {
+      const onRefreshRooms = async () => {
+        const rooms = await findRooms()
+        emit.next(rooms)
       }
 
-      for (const eventName of REFRESH_SESSIONS_LIST_EVENTS) {
-        ee.on(eventName, onRefreshSessions)
+      for (const eventName of REFRESH_ROOMS_LIST_EVENTS) {
+        ee.on(eventName, onRefreshRooms)
       }
-      onRefreshSessions()
+      onRefreshRooms()
       return () => {
-        for (const eventName of REFRESH_SESSIONS_LIST_EVENTS) {
-          ee.off(eventName, onRefreshSessions)
+        for (const eventName of REFRESH_ROOMS_LIST_EVENTS) {
+          ee.off(eventName, onRefreshRooms)
         }
       }
     })

@@ -2,13 +2,13 @@ import React, { useState } from 'react'
 import Cell from './Cell'
 import './ChessBoard.css'
 import type { ChessGame, PieceType } from '@common/chess'
-import type { Session, User } from '@common/model'
+import type { Room, User } from '@common/model'
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent } from '@dnd-kit/core'
 import Loading from '@front/components/Loading'
 import { trpc } from '@front/utils/trpc'
 import Piece from './Piece'
 
-const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; boardId: string }) => {
+const ChessBoard = ({ user, room, boardId }: { user: User; room: Room; boardId: string }) => {
   const [modeSelection, setModeSelection] = useState<{ isMulti: boolean | undefined; ai?: string | undefined }>({ isMulti: undefined })
   const [shallPromote, setShallPromote] = useState<{ pieceId: string; position: [number, number] } | undefined>(undefined)
   const [boardData, setBoardData] = useState<ChessGame>()
@@ -22,7 +22,7 @@ const ChessBoard = ({ user, session, boardId }: { user: User; session: Session; 
     enabledCells: []
   })
 
-  const isOwner = user.id === session.owner?.id
+  const isOwner = user.id === room.owner?.id
 
   const readyAIsQuery = trpc.chess.findReadyAIs.useQuery()
   const readyAIs = readyAIsQuery.data

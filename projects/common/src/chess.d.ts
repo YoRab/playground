@@ -20,7 +20,7 @@ export type ChessUser = User | ChessAI
 
 export type ChessGame = {
   id: string
-  sessionId: string
+  roomId: string
   owner: User
   players: { white?: ChessUser | undefined; black?: ChessUser | undefined }
   playerTurn: 'white' | 'black'

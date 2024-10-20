@@ -1,5 +1,6 @@
 :root {
   color-scheme: light dark;
+  --bulma-body-overflow-y: auto;
 }
 
 img {

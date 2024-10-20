@@ -14,7 +14,7 @@ const resolveUsers = async (paint?: DBReactPaint): Promise<ReactPaint | undefine
 
 export const findMany = async (): Promise<ReactPaint[]> => {
   const paints = await reactPaintApi.findMany()
-  const promises = paints.map(async session => (await resolveUsers(session))!)
+  const promises = paints.map(async room => (await resolveUsers(room))!)
   return Promise.all(promises)
 }
 
@@ -23,12 +23,12 @@ export const findReactPaintById = async (id: string): Promise<ReactPaint | undef
   return resolveUsers(paint)
 }
 
-export const createReactPaint = async (owner: string, sessionId: string): Promise<ReactPaint | undefined> => {
+export const createReactPaint = async (owner: string, roomId: string): Promise<ReactPaint | undefined> => {
   const userFound = await userApi.findById(owner)
   if (!userFound) {
     return
   }
-  const paint = await reactPaintApi.create({ sessionId, owner })
+  const paint = await reactPaintApi.create({ roomId, owner })
   return resolveUsers(paint)
 }
 

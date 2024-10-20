@@ -1,11 +1,11 @@
 import * as authRepo from '@back/repository/auth'
 import * as chessRepo from '@back/modules/chess/chessRepo'
-import * as sessionRepo from '@back/repository/game'
+import * as roomRepo from '@back/repository/room'
 import * as paintRepo from '@back/modules/paint/paintRepo'
 import * as userRepo from '@back/repository/user'
 import * as wordRepo from '@back/modules/word/wordRepo'
 import { ee, protectedProcedure, router } from '@back/services/trpc'
-import type { Session } from '@common/model'
+import type { Room } from '@common/model'
 import { observable } from '@trpc/server/observable'
 import { v4 as uuidv4 } from 'uuid'
 import { z } from 'zod'
@@ -21,45 +21,45 @@ const protectedRouter = router({
     return authRepo.logout()
   }),
 
-  addNewSession: protectedProcedure.mutation(async opts => {
+  addNewRoom: protectedProcedure.mutation(async opts => {
     const { user } = opts.ctx
-    const newSession = await sessionRepo.createSession(user!.id)
-    ee.emit('addNewSession')
+    const newSession = await roomRepo.createRoom(user!.id)
+    ee.emit('addNewRoom')
     return newSession
   }),
-  deleteSession: protectedProcedure
+  deleteRoom: protectedProcedure
     .input(
       z.object({
-        game: z.string()
+        room: z.string()
       })
     )
     .mutation(async opts => {
       const { user } = opts.ctx
-      const { game } = opts.input
-      const hasBeenDeleted = await sessionRepo.deleteSession(game, user!.id)
-      if (hasBeenDeleted) ee.emit('deleteSession')
+      const { room: game } = opts.input
+      const hasBeenDeleted = await roomRepo.deleteRoom(game, user!.id)
+      if (hasBeenDeleted) ee.emit('deleteRoom')
       return hasBeenDeleted
     }),
-  watchSession: protectedProcedure
+  watchRoom: protectedProcedure
     .input(
       z.object({
-        sessionId: z.string()
+        roomId: z.string()
       })
     )
     .subscription(async opts => {
       const { user } = opts.ctx
-      const { sessionId } = opts.input
-      const session = await sessionRepo.findSessionById(sessionId)
+      const { roomId } = opts.input
+      const room = await roomRepo.findRoomById(roomId)
 
       const subTempId = uuidv4()
 
-      return observable<Session>(emit => {
-        const onRefreshSession = async () => {
-          const refreshedSession = await sessionRepo.findSessionById(sessionId)
-          refreshedSession && emit.next(refreshedSession)
+      return observable<Room>(emit => {
+        const onRefreshRoom = async () => {
+          const refreshedRoom = await roomRepo.findRoomById(roomId)
+          refreshedRoom && emit.next(refreshedRoom)
         }
 
-        const events = REFRESH_SESSION_EVENTS.map(eventName => `${eventName}_${sessionId}`)
+        const events = REFRESH_SESSION_EVENTS.map(eventName => `${eventName}_${roomId}`)
 
         const userId = user?.id
 
@@ -67,69 +67,69 @@ const protectedRouter = router({
           emit.error('unknown user')
           return
         }
-        if (!session) {
-          emit.error('unknown session')
+        if (!room) {
+          emit.error('unknown room')
           return
         }
 
         const addWatcher = async () => {
-          await sessionRepo.addWatcher(sessionId, subTempId, userId!)
-          ee.emit(`addWatcher_${sessionId}`)
+          await roomRepo.addWatcher(roomId, subTempId, userId!)
+          ee.emit(`addWatcher_${roomId}`)
         }
 
         for (const eventName of events) {
-          ee.on(eventName, onRefreshSession)
+          ee.on(eventName, onRefreshRoom)
         }
 
         addWatcher()
 
         return () => {
           const removeWatcher = async () => {
-            await sessionRepo.removeWatcher(sessionId, subTempId)
-            ee.emit(`removeWatcher_${sessionId}`)
+            await roomRepo.removeWatcher(roomId, subTempId)
+            ee.emit(`removeWatcher_${roomId}`)
           }
 
           for (const eventName of events) {
-            ee.off(eventName, onRefreshSession)
+            ee.off(eventName, onRefreshRoom)
           }
 
           removeWatcher()
         }
       })
     }),
-  addBoard: protectedProcedure.input(z.object({ type: z.enum(['chess', 'reactPaint', 'word']), sessionId: z.string() })).mutation(async opts => {
+  addBoard: protectedProcedure.input(z.object({ type: z.enum(['chess', 'reactPaint', 'word']), roomId: z.string() })).mutation(async opts => {
     const { user } = opts.ctx
-    const { sessionId, type } = opts.input
+    const { roomId, type } = opts.input
 
     const newGame =
       type === 'chess'
-        ? await chessRepo.createGame(user!.id, sessionId)
+        ? await chessRepo.createGame(user!.id, roomId)
         : type === 'reactPaint'
-          ? await paintRepo.createReactPaint(user!.id, sessionId)
+          ? await paintRepo.createReactPaint(user!.id, roomId)
           : type === 'word'
-            ? await wordRepo.createWord(user!.id, sessionId)
+            ? await wordRepo.createWord(user!.id, roomId)
             : undefined
 
     if (!newGame) return
 
-    const newSession = await sessionRepo.addBoard(sessionId, newGame.id, user!.id, type)
-    ee.emit(`addBoard_${sessionId}`)
-    return newSession
+    const newBoard = await roomRepo.addBoard(roomId, newGame.id, user!.id, type)
+    ee.emit(`addBoard_${roomId}`)
+    return newBoard
   }),
   deleteBoard: protectedProcedure
     .input(
       z.object({
-        sessionId: z.string(),
+        roomId: z.string(),
         boardId: z.string()
       })
     )
     .mutation(async opts => {
       const { user } = opts.ctx
-      const { sessionId, boardId } = opts.input
-      const session = await sessionRepo.findSessionById(sessionId)
-      if (!session) return false
+      const { roomId, boardId } = opts.input
+      const room = await roomRepo.findRoomById(roomId)
+      if (!room) return false
 
-      const board = session.boards.find(board => board.id === boardId)
+      const board = room.boards.find(board => board.id === boardId)
       if (!board) return false
 
       const hasGameBeenDeleted =
@@ -142,8 +142,8 @@ const protectedRouter = router({
               : undefined
       if (!hasGameBeenDeleted) return false
 
-      const hasBeenDeleted = await sessionRepo.removeBoard(sessionId, boardId, user!.id)
-      if (hasBeenDeleted) ee.emit(`removeBoard_${sessionId}`)
+      const hasBeenDeleted = await roomRepo.removeBoard(roomId, boardId, user!.id)
+      if (hasBeenDeleted) ee.emit(`removeBoard_${roomId}`)
       return hasBeenDeleted
     })
 })

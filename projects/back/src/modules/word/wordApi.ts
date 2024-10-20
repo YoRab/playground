@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 export type DBWord = {
   id: string
-  sessionId: string
+  roomId: string
   owner: string
   word: string
   createdAt: number
@@ -16,7 +16,7 @@ const wordApi = {
 
   findById: async (id: string) => words.find(word => word.id === id),
 
-  create: async (data: { sessionId: string; owner: string }) => {
+  create: async (data: { roomId: string; owner: string }) => {
     const word: DBWord = {
       id: uuidv4(),
       ...data,

@@ -1,0 +1,71 @@
+.ScreenBoard {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px;
+  min-height: 0;
+}
+
+.ScreenBoardInner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  min-height: 0;
+}
+
+.chooseBoardContent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.CenteredBoard {
+  align-self: center;
+  flex: 1;
+  align-content: center;
+}
+
+
+.chooseBoardButton {
+  box-sizing: border-box;
+  padding: 16px;
+  width: 240px;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid white;
+  border-radius: 16px;
+  display: flex;
+  font-size: 24px;
+  line-height: 2;
+  cursor: pointer;
+  font-weight: bold;
+  user-select: none;
+}
+
+.chooseBoardButton:hover {
+  border-color: #7b61ff;
+  color: #7b61ff;
+
+}
+
+.chooseBoardButton>* {
+  min-height: 0;
+}
+
+.chooseBoardButton>img {
+  width: auto;
+}
+
+
+.BoardDelete {
+  text-align: right;
+}

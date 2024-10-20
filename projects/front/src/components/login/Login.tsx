@@ -26,7 +26,7 @@ const Login = () => {
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (pseudo.length < 2) {
-      setError('Le pseudo doit contenir au moins 2 caractères')
+      setError('Your nickname must contain at least 2 letters')
       return
     }
     setError(undefined)
@@ -34,27 +34,30 @@ const Login = () => {
   }
 
   return (
-    <div className='Login'>
-      <div>
-        <h1 className='is-size-1 has-text-white'>YoRab playground</h1>
-        <h1 className='is-size-3'>YoRab playground</h1>
-      </div>
-      <div className='box'>
+    <>
+      <div className='Flex1' />
+      <div className='Login'>
+        <h1 className='is-size-1'>Playground</h1>
+        <h2 className='is-size-3'>Play chess and other stuff</h2>
         <form onSubmit={submit}>
-          <div className='field'>
-            <label className='label' htmlFor='pseudo'>
-              Pseudo
-            </label>
-            <div className='control'>
-              <input className='input' id='pseudo' type='text' name='pseudo' value={pseudo} onChange={e => setPseudo(e.target.value)} />
+          <div className='field is-horizontal grid'>
+            <div className='control cell'>
+              <input
+                className='input'
+                type='text'
+                name='pseudo'
+                placeholder='Choose a nickname'
+                value={pseudo}
+                onChange={e => setPseudo(e.target.value)}
+              />
             </div>
-            {errors ? <p className='help is-danger'>{errors}</p> : null}
-            <p className='help'>Aucun compte requis</p>
+            <input type='submit' className='button is-primary cell' value='Start' />
           </div>
-          <input type='submit' className='button is-primary' />
+          {errors ? <p className='help is-danger'>{errors}</p> : null}
         </form>
       </div>
-    </div>
+      <div className='Flex2' />
+    </>
   )
 }
 

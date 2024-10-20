@@ -2,7 +2,7 @@ import type { User } from '@common/model'
 
 export type Word = {
   id: string
-  sessionId: string
+  roomId: string
   owner: User
   word: string
   createdAt: number
