@@ -253,16 +253,24 @@ const ChessBoard = ({ user, room, boardId }: { user: User; room: Room; boardId: 
                 return []
               })}
               {boardData.result === 'pat' ? (
-                <li>Pat</li>
+                <li>
+                  <strong>Pat</strong>
+                </li>
               ) : boardData.result === 'win' ? (
-                <li>Victoire de {boardData.winner?.pseudo}</li>
+                <li>
+                  <strong>Victoire de {boardData.winner?.pseudo}</strong>
+                </li>
               ) : boardData.result === 'giveup' ? (
                 <>
                   <li>
-                    Abandon de{' '}
-                    {boardData.players.black?.id === boardData.winner?.id ? boardData.players.white?.pseudo : boardData.players.black?.pseudo}
+                    <em>
+                      Abandon de{' '}
+                      {boardData.players.black?.id === boardData.winner?.id ? boardData.players.white?.pseudo : boardData.players.black?.pseudo}
+                    </em>
                   </li>
-                  <li>Victoire de {boardData.winner?.pseudo}</li>
+                  <li>
+                    <strong>Victoire de {boardData.winner?.pseudo}</strong>
+                  </li>
                 </>
               ) : null}
             </ul>

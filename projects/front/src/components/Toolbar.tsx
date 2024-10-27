@@ -8,7 +8,7 @@ const Toolbar = ({ screen = '' }) => {
   const { setItem } = useLocalStorage()
   const queryClient = useQueryClient()
 
-  const userQuery = trpc.public.getMe.useQuery(undefined)
+  const userQuery = trpc.public.getMe.useQuery()
   const user = userQuery.data
 
   const logoutMutation = trpc.protected.logout.useMutation({
