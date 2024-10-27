@@ -1,9 +1,11 @@
 .ChessBoard {
   flex: 1;
   display: flex;
-  align-items: center;
-  flex-direction: column;
+  justify-content: center;
   min-height: 0;
+  gap: 16px;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .ChessBoardContainer {
@@ -11,6 +13,16 @@
   max-width: 800px;
   width: 100%;
   min-height: 0;
+}
+
+.ChessBoardPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid gray;
+  width: min(250px, 20vw);
+  box-sizing: border-box;
+  padding: 12px;
 }
 
 .DragOverlay {
@@ -48,11 +60,20 @@
 }
 
 .LostPieces>.Piece {
-  width: 48px;
+  width: 36px;
 }
 
 .ChoicePlayers {}
 
 .history {
   min-height: 0;
+}
+
+
+.centeredModalContent {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }

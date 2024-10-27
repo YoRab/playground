@@ -101,10 +101,7 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
             <div className='chooseBoardButton' onClick={() => newBoard('reactPaint')}>
               Paint (incoming)
             </div>
-            <div
-              className='chooseBoardButton'
-              // onClick={() => newBoard('word')}
-            >
+            <div className='chooseBoardButton' onClick={() => newBoard('word')}>
               Word (incoming)
             </div>
           </section>

@@ -170,7 +170,7 @@ const ChessBoard = ({ user, room, boardId }: { user: User; room: Room; boardId: 
               <div className='modal is-active localModal'>
                 <div className='modal-background' />
                 <div className='modal-card'>
-                  <section className='modal-card-body'>
+                  <section className='modal-card-body centeredModalContent'>
                     {userColor || (needBothPlayer && !isOwner) ? (
                       "En attente d'un joueur"
                     ) : isOwner && modeSelection.isMulti === undefined ? (
@@ -213,7 +213,7 @@ const ChessBoard = ({ user, room, boardId }: { user: User; room: Room; boardId: 
                   </header>
                   <section className='modal-card-body'>Choisissez une pièce en laquelle promouvoir votre pion</section>
                   <footer className='modal-card-foot'>
-                    <div className='buttons'>
+                    <div className='buttons centeredModalContent'>
                       {(['queen', 'rook', 'bishop', 'knight'] as const).map(piece => (
                         <button key={piece} type='button' className='button' onClick={() => choosePromotion(piece)}>
                           <Piece piece={{ type: piece, color: userColor! }} />
@@ -226,45 +226,47 @@ const ChessBoard = ({ user, room, boardId }: { user: User; room: Room; boardId: 
             )}
           </div>
         </div>
-        <div className='LostPieces'>
-          {boardData.pieces
-            .filter(piece => piece.position === null)
-            .map(piece => {
-              return <Piece key={piece.id} piece={piece} />
-            })}
-        </div>
-        <div className='history'>
+        <div className='ChessBoardPanel'>
+          <div className='LostPieces'>
+            {boardData.pieces
+              .filter(piece => piece.position === null)
+              .map(piece => {
+                return <Piece key={piece.id} piece={piece} />
+              })}
+          </div>
           {!boardData.endedAt && boardData.startedAt && !!userColor && (
             <button type='button' className='button' onClick={giveUp}>
               Abandonner
             </button>
           )}
-          <ul>
-            {boardData.history.flatMap((move, index) => {
-              if (index % 2 === 0) {
-                const blackMove = boardData.history[index + 1]?.move ?? ''
-                return (
-                  <li key={move.time}>
-                    {index / 2 + 1}. {move.move} {blackMove}
-                  </li>
-                )
-              }
-              return []
-            })}
-            {boardData.result === 'pat' ? (
-              <li>Pat</li>
-            ) : boardData.result === 'win' ? (
-              <li>Victoire de {boardData.winner?.pseudo}</li>
-            ) : boardData.result === 'giveup' ? (
-              <>
-                <li>
-                  Abandon de{' '}
-                  {boardData.players.black?.id === boardData.winner?.id ? boardData.players.white?.pseudo : boardData.players.black?.pseudo}
-                </li>
+          <div className='history'>
+            <ul>
+              {boardData.history.flatMap((move, index) => {
+                if (index % 2 === 0) {
+                  const blackMove = boardData.history[index + 1]?.move ?? ''
+                  return (
+                    <li key={move.time}>
+                      {index / 2 + 1}. {move.move} {blackMove}
+                    </li>
+                  )
+                }
+                return []
+              })}
+              {boardData.result === 'pat' ? (
+                <li>Pat</li>
+              ) : boardData.result === 'win' ? (
                 <li>Victoire de {boardData.winner?.pseudo}</li>
-              </>
-            ) : null}
-          </ul>
+              ) : boardData.result === 'giveup' ? (
+                <>
+                  <li>
+                    Abandon de{' '}
+                    {boardData.players.black?.id === boardData.winner?.id ? boardData.players.white?.pseudo : boardData.players.black?.pseudo}
+                  </li>
+                  <li>Victoire de {boardData.winner?.pseudo}</li>
+                </>
+              ) : null}
+            </ul>
+          </div>
         </div>
         <DragOverlay className='DragOverlay' dropAnimation={dragDatas.withDropAnim ? undefined : null}>
           {dragDatas.active && <Piece piece={dragDatas.active} isOverlay={true} />}

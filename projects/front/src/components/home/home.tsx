@@ -60,7 +60,9 @@ const Home = () => {
                   Created on {new Date(room.createdAt).toUTCString()} by {room.owner?.pseudo ?? 'Unknown (çà pue le bug)'}
                 </div>
                 <div>
-                  <strong>{room.watchers.length} in the room</strong>
+                  <strong>
+                    {room.watchers.length} in the room : {room.watchers.map(watcher => watcher.pseudo).join(', ')}
+                  </strong>
                 </div>
               </div>
               <footer className='card-footer'>
