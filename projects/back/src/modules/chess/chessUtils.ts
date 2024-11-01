@@ -562,7 +562,7 @@ const getBishopMoves = (boardData: BoardData, active: PieceType, onlyTakenMove =
   }
 
   for (let i = position[0] + 1; i < 8; i++) {
-    if (position[1] - (position[0] - i) >= 0) {
+    if (position[1] - (position[0] - i) < 8) {
       const check = getMoveIfFree({
         boardData,
         active,
@@ -574,7 +574,7 @@ const getBishopMoves = (boardData: BoardData, active: PieceType, onlyTakenMove =
     }
   }
   for (let i = position[0] + 1; i < 8; i++) {
-    if (position[1] + (position[0] - i) < 8) {
+    if (position[1] + (position[0] - i) >= 0) {
       const check = getMoveIfFree({
         boardData,
         active,
