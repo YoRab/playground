@@ -1,16 +1,18 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './paint.css'
 import type { Room, User } from '@common/model'
 import { trpc } from '@front/utils/trpc'
-import ReactPaint from '@yorab/react-paint'
-
-type AnnotationsType = ReturnType<NonNullable<NonNullable<Parameters<typeof ReactPaint>[0]['apiRef']>['current']>['getCurrentData']>['shapes']
+import { Canvas, Editor, type StateData, useReactPaint, type DrawableShape } from '@yorab/react-paint'
 
 const Paint = ({ user, room, boardId }: { user: User; room: Room; boardId: string }) => {
-  const apiRef: Parameters<typeof ReactPaint>[0]['apiRef'] = useRef()
-  const [shapes, setShapes] = useState<AnnotationsType>(undefined)
   const tempShapes = useRef<string | undefined>('[]')
   const [error, setError] = useState<string | undefined>()
+
+  const { registerEvent, unregisterEvent, resetCanvas, editorProps, canvasProps } = useReactPaint({
+    mode: 'editor',
+    width: 1280,
+    height: 720
+  })
 
   trpc.paint.watchPaint.useSubscription(
     { boardId },
@@ -20,7 +22,8 @@ const Paint = ({ user, room, boardId }: { user: User; room: Room; boardId: strin
         if (JSON.stringify(paint.data) === tempShapes.current) {
           return
         }
-        setShapes(paint.data as AnnotationsType)
+        console.log('reset')
+        resetCanvas(paint.data as DrawableShape[])
       },
       onError(err) {
         console.error('Subscription error:', err)
@@ -29,20 +32,29 @@ const Paint = ({ user, room, boardId }: { user: User; room: Room; boardId: strin
     }
   )
 
-  const setPaintMutation = trpc.paint.setPaint.useMutation()
+  const { mutate: setPaintMutate } = trpc.paint.setPaint.useMutation()
 
-  const saveAnnotation = useCallback(() => {
-    if (!apiRef.current) return
-    const drawData = apiRef.current.getCurrentData()
-    const newData = JSON.stringify(drawData.shapes)
-    if (tempShapes.current === newData) return
-    tempShapes.current = newData
-    setPaintMutation.mutate({ boardId, value: drawData.shapes })
-  }, [setPaintMutation, boardId])
+  useEffect(() => {
+    const onDataChanged = (data: StateData, source: 'user' | 'remote') => {
+      if (source !== 'user') return
+      const newData = JSON.stringify(data.shapes)
+      if (tempShapes.current === newData) return
+      tempShapes.current = newData
+      setPaintMutate({ boardId, value: data.shapes })
+    }
+    registerEvent('dataChanged', onDataChanged)
+    return () => {
+      unregisterEvent('dataChanged', onDataChanged)
+    }
+  }, [registerEvent, unregisterEvent, setPaintMutate, boardId])
 
   return (
     <div className='ScreenPaint'>
-      {error ?? <ReactPaint width={1280} height={720} shapes={shapes} onDataChanged={saveAnnotation} apiRef={apiRef} />}
+      {error ?? (
+        <Editor editorProps={editorProps}>
+          <Canvas canvasProps={canvasProps} />
+        </Editor>
+      )}
     </div>
   )
 }
