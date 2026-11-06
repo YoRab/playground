@@ -1,45 +1,41 @@
+import Room from '@front/components/room/Room'
 import { getPathRoute } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
-import React, { useCallback, useEffect, useState } from 'react'
-import Loading from './Loading'
-import Toolbar from './Toolbar'
+import { AppShell, Flex } from '@mantine/core'
+import { Loading } from '@platform/client'
+import type React from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Home from './home/home'
 import Login from './login/Login'
-import '@yorab/react-paint/react-paint.css'
-import Room from '@front/components/room/Room'
-import Footer from './Footer'
-import './Router.css'
+import Toolbar from './Toolbar'
 
-const WithToolbar = ({
-  Component,
-  toolbar = false,
-  footer = false,
-  name
-}: { Component: () => JSX.Element; toolbar?: boolean; footer?: boolean; name: string }) => {
+const Layout = ({ Component }: { Component: () => React.JSX.Element }) => {
   return (
-    <>
-      {toolbar && <Toolbar screen={name} />}
-      <section className='main'>
+    <AppShell header={{ height: 60 }} padding='md'>
+      <AppShell.Header>
+        <Toolbar />
+      </AppShell.Header>
+      {/* flex column: the boards fill the remaining height (flex: 1, min-height: 0) */}
+      <AppShell.Main display='flex' style={{ flexDirection: 'column' }}>
         <Component />
-      </section>
-      {footer && <Footer />}
-    </>
+      </AppShell.Main>
+    </AppShell>
   )
 }
 
 const PATHS = {
   room: {
-    elements: <WithToolbar toolbar Component={Room} name='Room' />,
+    elements: <Layout Component={Room} />,
     private: true,
     public: false
   },
   home: {
-    elements: <WithToolbar toolbar Component={Home} name='Home' />,
+    elements: <Layout Component={Home} />,
     private: true,
     public: false
   },
   login: {
-    elements: <WithToolbar toolbar Component={Login} name='Login' />,
+    elements: <Layout Component={Login} />,
     private: false,
     public: true
   }
@@ -73,7 +69,13 @@ const Router = () => {
     }
   }, [isLoading, onRouteChanged])
 
-  return isLoading ? <Loading /> : (!needRedirection && PATHS[path as keyof typeof PATHS]?.elements) || null
+  return isLoading ? (
+    <Flex mih='100dvh' direction='column'>
+      <Loading />
+    </Flex>
+  ) : (
+    (!needRedirection && PATHS[path as keyof typeof PATHS]?.elements) || null
+  )
 }
 
 export default Router

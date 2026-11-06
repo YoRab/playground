@@ -1,13 +1,14 @@
-import React, { useState } from 'react'
-import './Room.css'
-import type { Room, User } from '@common/model'
-import Loading from '@front/components/Loading'
-import ChessBoard from '@front/components/chessboard/ChessBoard'
-import Paint from '@front/components/paint/paint'
-import Word from '@front/components/word/word'
+import type { AppType } from '@back/apps'
+import { clientAppEntries, findClientApp } from '@front/apps'
+import { confirmDelete } from '@front/utils/confirmDelete'
 import { getPathParams } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
-import { PIECES_PIC } from '@front/constants/pieces'
+import { Button, Center, Group, Image, Modal, SimpleGrid, Stack, Text, Title, UnstyledButton } from '@mantine/core'
+import { ErrorAlert, Loading } from '@platform/client'
+import type { Room, User } from '@platform/model'
+import { IconApps, IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react'
+import { Suspense, useState } from 'react'
+import classes from './Room.module.css'
 
 const RoomInner = ({ user, room }: { user: User; room: Room }) => {
   const [showNewGame, setShowNewGame] = useState(false)
@@ -15,6 +16,7 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
   const [activeTabIndex, setActiveTabIndex] = useState(room.boards.length)
 
   const activeBoard = activeTabIndex > 0 ? room.boards[activeTabIndex - 1] : undefined
+  const ActiveApp = activeBoard && findClientApp(activeBoard.type)?.Component
   const addNewBoardMutation = trpc.protected.addBoard.useMutation({
     onSuccess: data => {
       console.log('board created', data)
@@ -30,7 +32,7 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
     }
   })
 
-  const newBoard = (type: 'chess' | 'reactPaint' | 'word') => {
+  const newBoard = (type: AppType) => {
     setShowNewGame(false)
     addNewBoardMutation.mutate({
       type,
@@ -39,82 +41,57 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
   }
 
   const deleteBoard = (boardId: string) => {
-    deleteBoardMutation.mutate({
-      roomId: room.id,
-      boardId
-    })
+    confirmDelete('Delete board', 'Delete this board for everyone in the room?', () =>
+      deleteBoardMutation.mutate({
+        roomId: room.id,
+        boardId
+      })
+    )
   }
+
   return (
-    <div className='ScreenBoardInner'>
-      {/* <div className='tabs is-large'>
-        <ul>
-          <li className={activeTabIndex === 0 ? 'is-active' : undefined}>
-            <a onClick={() => setActiveTabIndex(0)}>Accueil</a>
-          </li>
-          {room.boards.map((board, index) => {
-            return (
-              <li key={board.id} className={activeTabIndex === index + 1 ? 'is-active' : undefined}>
-                <a onClick={() => setActiveTabIndex(index + 1)}>{board.type}</a>
-              </li>
-            )
-          })}
-        </ul>
-      </div> */}
+    <Stack flex={1} mih={0} gap='sm'>
       {activeBoard && isOwner && (
-        <div className='BoardDelete'>
-          <button type='button' className='button is-danger' onClick={() => deleteBoard(activeBoard.id)}>
+        <Group justify='flex-end'>
+          <Button color='red' variant='light' leftSection={<IconTrash size={16} />} onClick={() => deleteBoard(activeBoard.id)}>
             Delete board
-          </button>
-        </div>
+          </Button>
+        </Group>
       )}
 
       {!activeBoard ? (
-        isOwner ? (
-          <div className='CenteredBoard'>
-            <button type='button' className='button' onClick={() => setShowNewGame(true)}>
+        <Center flex={1}>
+          {isOwner ? (
+            <Button size='md' leftSection={<IconPlus size={18} />} onClick={() => setShowNewGame(true)} loading={addNewBoardMutation.isPending}>
               New board
-            </button>
-          </div>
-        ) : (
-          <div className='CenteredBoard'>Waiting for {room.owner?.pseudo ?? ''}</div>
-        )
-      ) : activeBoard.type === 'chess' ? (
-        <ChessBoard user={user} room={room} boardId={activeBoard.id} />
-      ) : activeBoard.type === 'reactPaint' ? (
-        <Paint user={user} room={room} boardId={activeBoard.id} />
-      ) : activeBoard.type === 'word' ? (
-        <Word user={user} room={room} boardId={activeBoard.id} />
-      ) : null}
+            </Button>
+          ) : (
+            <Text c='dimmed'>Waiting for {room.owner?.pseudo ?? ''}</Text>
+          )}
+        </Center>
+      ) : ActiveApp ? (
+        <Suspense fallback={<Loading />}>
+          <ActiveApp key={activeBoard.id} user={user} room={room} boardId={activeBoard.id} />
+        </Suspense>
+      ) : (
+        <Center flex={1}>
+          <Text c='dimmed'>Unknown board type: {activeBoard.type}</Text>
+        </Center>
+      )}
 
-      <div className={`modal ${showNewGame ? ' is-active' : ''}`}>
-        <div className='modal-background' onClick={() => setShowNewGame(false)} />
-        <div className='modal-card'>
-          <header className='modal-card-head'>
-            <p className='modal-card-title'>Create a new board</p>
-            <button type='button' className='delete' aria-label='close' onClick={() => setShowNewGame(false)} />
-          </header>
-          <section className='modal-card-body chooseBoardContent'>
-            <div className='chooseBoardButton' onClick={() => newBoard('chess')}>
-              <img className='Piece isoverlay' alt='' src={PIECES_PIC.get('wpawn')} />
-              <div>Chess board</div>
-            </div>
-            <div className='chooseBoardButton' onClick={() => newBoard('reactPaint')}>
-              Paint (incoming)
-            </div>
-            <div className='chooseBoardButton' onClick={() => newBoard('word')}>
-              Word (incoming)
-            </div>
-          </section>
-          <footer className='modal-card-foot'>
-            <div className='buttons'>
-              <button type='button' className='button' onClick={() => setShowNewGame(false)}>
-                Cancel
-              </button>
-            </div>
-          </footer>
-        </div>
-      </div>
-    </div>
+      <Modal opened={showNewGame} onClose={() => setShowNewGame(false)} title='Create a new board' size='lg'>
+        <SimpleGrid cols={{ base: 2, sm: 3 }}>
+          {clientAppEntries.map(([type, app]) => (
+            <UnstyledButton key={type} className={classes.tile} onClick={() => newBoard(type)}>
+              {app.icon ? <Image src={app.icon} alt='' h={48} w='auto' /> : <IconApps size={48} stroke={1.5} />}
+              <Text size='sm' fw={500}>
+                {app.label}
+              </Text>
+            </UnstyledButton>
+          ))}
+        </SimpleGrid>
+      </Modal>
+    </Stack>
   )
 }
 
@@ -142,16 +119,15 @@ const RoomComponent = () => {
   )
 
   return (
-    <div className='ScreenBoard'>
-      <h1 className='is-size-4'>
-        <a className='button' href='#/home'>
+    <Stack flex={1} mih={0} gap='sm'>
+      <Group gap='sm'>
+        <Button component='a' href='#/home' variant='subtle' leftSection={<IconArrowLeft size={16} />}>
           Back to Home
-        </a>
-        &nbsp;
-        {room?.title}
-      </h1>
-      {error ?? (room ? <RoomInner user={user!} room={room} /> : <Loading />)}
-    </div>
+        </Button>
+        <Title order={3}>{room?.title}</Title>
+      </Group>
+      {error ? <ErrorAlert title='Room unavailable'>{error}</ErrorAlert> : room ? <RoomInner user={user!} room={room} /> : <Loading />}
+    </Stack>
   )
 }
 

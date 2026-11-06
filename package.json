@@ -5,21 +5,20 @@
   "author": "Yohann Rabatel",
   "main": "index.js",
   "license": "ISC",
-  "workspaces": ["./projects/*"],
+  "packageManager": "pnpm@12.11.2",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "concurrently --kill-others \"npm run start:server\" \"npm run start:client\"",
-    "start:client": "npm run start -w front",
-    "start:server": "npm run start:dev -w back",
-    "build": "npm run build:common && npm run build:client && npm:run build:server",
-    "build:client": "npm run build -w front",
-    "build:common": "npm run build -w common",
-    "build:server": "npm run build -w back",
-    "lint": "biome check --write projects/back/src projects/front/src projects/common/src"
+    "start": "pnpm -r --parallel dev",
+    "start:client": "pnpm --filter front dev",
+    "start:server": "pnpm --filter back dev",
+    "build": "pnpm build:server && pnpm build:client",
+    "build:client": "pnpm --filter front build",
+    "build:server": "pnpm --filter back build",
+    "lint": "biome check --write projects/back/src projects/front/src projects/platform projects/apps"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.2",
-    "@types/node": "22.7.0",
-    "typescript": "5.6.2"
+    "@biomejs/biome": "2.6.5",
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2"
   }
 }

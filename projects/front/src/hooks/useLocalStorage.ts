@@ -1,11 +1,11 @@
-import React, { useCallback } from 'react'
+import { useCallback } from 'react'
 
 const useLocalStorage = () => {
   const getItem = useCallback((key: string) => {
     try {
       const value = localStorage.getItem(key)
       return value !== null ? JSON.parse(value) : null
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }, [])

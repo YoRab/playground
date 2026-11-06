@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.node.json",
-  "compilerOptions": {
-    "declaration": false,
-    "noEmit": true,
-    "emitDeclarationOnly": false
-  },
-  "include": ["src"]
-}

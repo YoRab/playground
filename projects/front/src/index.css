@@ -1,17 +1,7 @@
-:root {
-  color-scheme: light dark;
-  --bulma-body-overflow-y: auto;
-}
-
 img {
   -webkit-user-drag: none;
   -moz-user-drag: none;
   -o-user-drag: none;
   /* biome-ignore lint/correctness/noUnknownProperty: this exists */
   user-drag: none;
-}
-
-
-.localModal {
-  position: absolute;
 }
