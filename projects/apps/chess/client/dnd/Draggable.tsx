@@ -1,6 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
 import type React from 'react'
-import './Draggable.css'
+import classes from './Draggable.module.css'
 
 const Draggable = ({
   id,
@@ -20,7 +20,14 @@ const Draggable = ({
   })
 
   return (
-    <Element className={`Draggable ${isDragging ? 'isdragging' : ''} ${disabled ? 'disabled' : ''}`} ref={setNodeRef} {...listeners} {...attributes}>
+    <Element
+      className={classes.draggable}
+      data-dragging={isDragging || undefined}
+      data-disabled={disabled || undefined}
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+    >
       {children}
     </Element>
   )

@@ -1,7 +1,8 @@
+import { Paper } from '@mantine/core'
+import { type AppProps, ErrorAlert } from '@platform/client'
 import { type FormEvent, useRef, useState } from 'react'
-import './word.css'
-import type { AppProps } from '@platform/client'
 import { trpc } from './trpc'
+import classes from './Word.module.css'
 
 const Word = ({ boardId }: AppProps) => {
   const contentEditableRef = useRef<HTMLDivElement>(null)
@@ -28,7 +29,15 @@ const Word = ({ boardId }: AppProps) => {
   const onChangeWord = (e: FormEvent<HTMLElement>) => {
     setWordMutation.mutate({ boardId, value: (e.target as HTMLElement).textContent ?? '' })
   }
-  return <div className='ScreenWord'>{error ?? <div ref={contentEditableRef} className='WordContent' contentEditable onInput={onChangeWord} />}</div>
+
+  if (error) {
+    return <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
+  }
+  return (
+    <Paper withBorder p='md'>
+      <div ref={contentEditableRef} className={classes.content} contentEditable onInput={onChangeWord} />
+    </Paper>
+  )
 }
 
 export default Word

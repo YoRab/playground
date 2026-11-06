@@ -7,6 +7,6 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
     // the apps (projects/apps/*) are separate packages: make sure they all share the copy of the shell
-    dedupe: ['react', 'react-dom', '@tanstack/react-query']
+    dedupe: ['react', 'react-dom', '@tanstack/react-query', '@mantine/core', '@mantine/hooks']
   }
 })

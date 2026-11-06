@@ -1,0 +1,11 @@
+.content {
+  display: block;
+  width: 100%;
+  min-height: 200px;
+  border-radius: var(--mantine-radius-sm);
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: var(--mantine-spacing-xs);
+  }
+}

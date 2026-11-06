@@ -1,63 +1,56 @@
-import type React from 'react'
-import { useState } from 'react'
-import './Login.css'
 import useLocalStorage from '@front/hooks/useLocalStorage'
 import { resetWsClient } from '@front/hooks/useTrpc'
 import { trpc } from '@front/utils/trpc'
+import { Button, Container, Paper, Text, TextInput, Title } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import { getQueryKey } from '@platform/client'
 import { useQueryClient } from '@tanstack/react-query'
 
 const Login = () => {
-  const [pseudo, setPseudo] = useState('')
-  const [error, setError] = useState<string | undefined>(undefined)
   const queryClient = useQueryClient()
-
   const { setItem } = useLocalStorage()
+
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: { pseudo: '' },
+    validate: {
+      pseudo: value => (value.trim().length < 2 ? 'Your nickname must contain at least 2 letters' : null)
+    }
+  })
+
   const login = trpc.public.login.useMutation({
+    meta: { handlesError: true },
     onSuccess: jwtToken => {
       setItem('jwt_token', jwtToken)
       const postListKey = getQueryKey(trpc.public.getMe)
       queryClient.invalidateQueries({ queryKey: postListKey })
       resetWsClient()
+    },
+    onError: error => {
+      form.setFieldError('pseudo', error.message)
     }
   })
-  const errors = error ?? login.error?.message
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (pseudo.length < 2) {
-      setError('Your nickname must contain at least 2 letters')
-      return
-    }
-    setError(undefined)
+  const submit = form.onSubmit(({ pseudo }) => {
     login.mutate({ pseudo })
-  }
+  })
 
   return (
-    <>
-      <div className='Flex1' />
-      <div className='Login'>
-        <h1 className='is-size-1'>Playground</h1>
-        <h2 className='is-size-3'>Play chess and other stuff</h2>
+    <Container size={420} my={40} w='100%'>
+      <Title ta='center'>Playground</Title>
+      <Text c='dimmed' size='sm' ta='center' mt={5}>
+        Play chess and other stuff
+      </Text>
+
+      <Paper withBorder shadow='sm' p={22} mt={30} radius='md'>
         <form onSubmit={submit}>
-          <div className='field is-horizontal grid'>
-            <div className='control cell'>
-              <input
-                className='input'
-                type='text'
-                name='pseudo'
-                placeholder='Choose a nickname'
-                value={pseudo}
-                onChange={e => setPseudo(e.target.value)}
-              />
-            </div>
-            <input type='submit' className='button is-primary cell' value='Start' />
-          </div>
-          {errors ? <p className='help is-danger'>{errors}</p> : null}
+          <TextInput label='Nickname' placeholder='Choose a nickname' data-autofocus key={form.key('pseudo')} {...form.getInputProps('pseudo')} />
+          <Button type='submit' fullWidth mt='xl' loading={login.isPending}>
+            Start
+          </Button>
         </form>
-      </div>
-      <div className='Flex2' />
-    </>
+      </Paper>
+    </Container>
   )
 }
 

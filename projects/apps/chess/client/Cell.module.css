@@ -1,0 +1,64 @@
+.cell {
+  --cell-light: #e8edf9;
+  --cell-dark: #b7c0d8;
+  --cell-accent: var(--mantine-color-violet-4);
+
+  flex: 1;
+  aspect-ratio: 1;
+  background: var(--cell-light);
+  color: var(--cell-dark);
+  user-select: none;
+  position: relative;
+  font-weight: 500;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: content-box;
+  border: 6px solid transparent;
+
+  /* the order of the state rules matters: selected beats dark, catchable beats everything */
+  &[data-dark] {
+    background: var(--cell-dark);
+    color: var(--cell-light);
+  }
+
+  &[data-selected] {
+    background: var(--cell-accent);
+  }
+
+  &[data-over],
+  &[data-highlighted]:hover {
+    border-color: var(--cell-accent);
+  }
+
+  &[data-highlighted] {
+    cursor: pointer;
+  }
+
+  &[data-highlighted]::before {
+    content: "";
+    position: absolute;
+    background: var(--cell-accent);
+    opacity: 0.5;
+    border-radius: 50%;
+    width: 33%;
+    aspect-ratio: 1;
+  }
+
+  &[data-catchable] {
+    background: var(--mantine-color-red-6);
+  }
+}
+
+.rowIndicator {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+}
+
+.colIndicator {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+}

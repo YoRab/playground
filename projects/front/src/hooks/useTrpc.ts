@@ -1,6 +1,7 @@
+import { reportError } from '@front/utils/reportError'
 import { trpc } from '@front/utils/trpc'
 import { createWSClient, httpBatchLink, splitLink, wsLink } from '@platform/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 
 // same host as the page by default, so that the app also works from another device of the network (`vite --host`)
@@ -22,7 +23,19 @@ const wsClient = createWSClient({
 export const resetWsClient = () => wsClient.close()
 
 const UseTrpc = () => {
-  const [queryClient] = useState(() => new QueryClient())
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        // one place to report the failed mutations of the shell and of every app;
+        // a mutation that shows its own error opts out with `meta: { handlesError: true }`
+        mutationCache: new MutationCache({
+          onError: (error, _variables, _onMutateResult, mutation) => {
+            if (mutation.meta?.handlesError) return
+            reportError('Error', error.message)
+          }
+        })
+      })
+  )
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [

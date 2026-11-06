@@ -1,9 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import '@yorab/react-paint/react-paint.css'
-import './paint.css'
-import type { AppProps } from '@platform/client'
-import { Canvas, type DrawableShape, Editor, type StateData, useReactPaint } from '@yorab/react-paint'
+import { type AppProps, ErrorAlert } from '@platform/client'
+import { Canvas, type DrawableShape, Editor, type EditorOptions, type StateData, useReactPaint } from '@yorab/react-paint'
+import classes from './Paint.module.css'
 import { trpc } from './trpc'
+
+// the editor injects its colors as CSS variables: Mantine variables follow the color scheme without JS
+const EDITOR_OPTIONS: EditorOptions = {
+  toolbarBackgroundColor: 'var(--mantine-color-body)',
+  dividerColor: 'var(--mantine-color-default-border)',
+  fontColor: 'var(--mantine-color-text)',
+  fontHoverColor: 'var(--mantine-color-text)',
+  fontHoverBackgroundColor: 'var(--mantine-color-default-hover)',
+  fontSelectedColor: 'var(--mantine-color-white)',
+  fontSelectedBackgroundColor: 'var(--mantine-primary-color-filled)',
+  fontDisabledColor: 'var(--mantine-color-dimmed)'
+}
 
 const Paint = ({ boardId }: AppProps) => {
   const tempShapes = useRef<string | undefined>('[]')
@@ -46,9 +58,11 @@ const Paint = ({ boardId }: AppProps) => {
   }, [paint, setPaintMutate, boardId])
 
   return (
-    <div className='ScreenPaint'>
-      {error ?? (
-        <Editor paint={paint}>
+    <div className={classes.screen}>
+      {error ? (
+        <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
+      ) : (
+        <Editor paint={paint} options={EDITOR_OPTIONS}>
           <Canvas paint={paint} />
         </Editor>
       )}

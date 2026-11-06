@@ -1,0 +1,16 @@
+.draggable {
+  position: relative;
+  z-index: 1;
+  opacity: 1 !important;
+  width: 75%;
+  cursor: grab;
+  touch-action: none;
+
+  &[data-disabled] {
+    pointer-events: none;
+  }
+
+  &[data-dragging] {
+    opacity: 0.25 !important;
+  }
+}

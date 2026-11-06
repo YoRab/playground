@@ -5,6 +5,8 @@
   "description": "Shared drawing board, built on @yorab/react-paint",
   "license": "ISC",
   "dependencies": {
+    "@mantine/core": "9.7.5",
+    "@mantine/hooks": "9.7.5",
     "@yorab/react-paint": "1.0.0-beta.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",

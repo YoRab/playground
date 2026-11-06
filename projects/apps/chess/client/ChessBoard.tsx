@@ -1,11 +1,21 @@
-import { useState } from 'react'
-import Cell from './Cell'
-import './ChessBoard.css'
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent } from '@dnd-kit/core'
+import { ActionIcon, Button, Group, List, Overlay, Paper, ScrollArea, Stack, Text, Title } from '@mantine/core'
 import { type AppProps, Loading } from '@platform/client'
+import { type ReactNode, useState } from 'react'
 import { type ChessGame, type PieceType, PROMOTIONS } from '../shared/types'
+import Cell from './Cell'
+import classes from './ChessBoard.module.css'
 import Piece from './Piece'
 import { trpc } from './trpc'
+
+// a dialog confined to the board itself (not a full Mantine Modal: both choices below are mandatory, nothing to dismiss)
+const BoardOverlay = ({ children }: { children: ReactNode }) => (
+  <Overlay center blur={2} radius='md' backgroundOpacity={0.45}>
+    <Paper p='lg' shadow='md' miw={260}>
+      {children}
+    </Paper>
+  </Overlay>
+)
 
 const ChessBoard = ({ user, room, boardId }: AppProps) => {
   const [modeSelection, setModeSelection] = useState<{ isMulti: boolean | undefined; ai?: string | undefined }>({ isMulti: undefined })
@@ -132,16 +142,13 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
   if (!boardData) return <Loading />
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className='ChessBoard'>
+      <div className={classes.chessBoard}>
         {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-move complements drag and drop, which is pointer-only */}
-        <div
-          className={`ChessBoardContainer${dragDatas.active ? ' isdragging' : ''}${userColor === 'black' ? ' isBlack' : ''}`}
-          onClick={handleBoardClick}
-        >
-          <div className='Board'>
+        <div className={classes.container} data-black={userColor === 'black' || undefined} onClick={handleBoardClick}>
+          <div className={classes.board}>
             {boardData.board.map((boardRow, rowIndex) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: board rows and cells are positional and never reordered
-              <div key={rowIndex} className='Row'>
+              <div key={rowIndex} className={classes.row}>
                 {boardRow.map((boardCell, colIndex) => {
                   const id = `${rowIndex}-${colIndex}`
                   const piece = boardCell && !needPlayer ? boardData.pieces.find(piece => piece.id === boardCell) : undefined
@@ -167,67 +174,50 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
             ))}
 
             {needPlayer && (
-              <div className='modal is-active localModal'>
-                <div className='modal-background' />
-                <div className='modal-card'>
-                  <section className='modal-card-body centeredModalContent'>
-                    {userColor || (needBothPlayer && !isOwner) ? (
-                      "En attente d'un joueur"
-                    ) : isOwner && modeSelection.isMulti === undefined ? (
-                      <>
-                        <button className='button' type='button' onClick={() => setModeSelection({ isMulti: true })}>
-                          Jouer contre un humain
-                        </button>
-                        {readyAIs?.map(readyAI => (
-                          <button
-                            key={readyAI.id}
-                            className='button'
-                            type='button'
-                            onClick={() => setModeSelection({ isMulti: false, ai: readyAI.id })}
-                          >
-                            Jouer contre {readyAI.pseudo}
-                          </button>
-                        ))}
-                      </>
-                    ) : (
-                      <>
-                        <button className='button' type='button' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
-                          Jouer les blancs
-                        </button>
-                        <button className='button' type='button' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
-                          Jouer les noirs
-                        </button>
-                      </>
-                    )}
-                  </section>
-                </div>
-              </div>
+              <BoardOverlay>
+                {userColor || (needBothPlayer && !isOwner) ? (
+                  <Text ta='center'>En attente d'un joueur</Text>
+                ) : isOwner && modeSelection.isMulti === undefined ? (
+                  <Stack gap='sm'>
+                    <Button onClick={() => setModeSelection({ isMulti: true })}>Jouer contre un humain</Button>
+                    {readyAIs?.map(readyAI => (
+                      <Button key={readyAI.id} variant='light' onClick={() => setModeSelection({ isMulti: false, ai: readyAI.id })}>
+                        Jouer contre {readyAI.pseudo}
+                      </Button>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Group justify='center' gap='sm'>
+                    <Button variant='default' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
+                      Jouer les blancs
+                    </Button>
+                    <Button color='dark' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
+                      Jouer les noirs
+                    </Button>
+                  </Group>
+                )}
+              </BoardOverlay>
             )}
 
             {shallPromote && (
-              <div className='modal localModal is-active'>
-                <div className='modal-background' />
-                <div className='modal-card'>
-                  <header className='modal-card-head'>
-                    <p className='modal-card-title'>Promotion d'un pion</p>
-                  </header>
-                  <section className='modal-card-body'>Choisissez une pièce en laquelle promouvoir votre pion</section>
-                  <footer className='modal-card-foot'>
-                    <div className='buttons centeredModalContent'>
-                      {PROMOTIONS.map(piece => (
-                        <button key={piece} type='button' className='button' onClick={() => choosePromotion(piece)}>
-                          <Piece piece={{ type: piece, color: userColor! }} />
-                        </button>
-                      ))}
-                    </div>
-                  </footer>
-                </div>
-              </div>
+              <BoardOverlay>
+                <Stack gap='sm' align='center'>
+                  <Title order={4}>Promotion d'un pion</Title>
+                  <Text size='sm'>Choisissez une pièce en laquelle promouvoir votre pion</Text>
+                  <Group gap='sm'>
+                    {PROMOTIONS.map(piece => (
+                      <ActionIcon key={piece} variant='default' size={64} aria-label={piece} onClick={() => choosePromotion(piece)}>
+                        <Piece piece={{ type: piece, color: userColor! }} />
+                      </ActionIcon>
+                    ))}
+                  </Group>
+                </Stack>
+              </BoardOverlay>
             )}
           </div>
         </div>
-        <div className='ChessBoardPanel'>
-          <div className='LostPieces'>
+        <Paper withBorder p='sm' className={classes.panel}>
+          <div className={classes.lostPieces}>
             {boardData.pieces
               .filter(piece => piece.position === null)
               .map(piece => {
@@ -235,48 +225,48 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
               })}
           </div>
           {!boardData.endedAt && boardData.startedAt && !!userColor && (
-            <button type='button' className='button' onClick={giveUp}>
+            <Button color='red' variant='light' onClick={giveUp}>
               Abandonner
-            </button>
+            </Button>
           )}
-          <div className='history'>
-            <ul>
+          <ScrollArea flex={1} mih={0}>
+            <List listStyleType='none' size='sm' spacing={4}>
               {boardData.history.flatMap((move, index) => {
                 if (index % 2 === 0) {
                   const blackMove = boardData.history[index + 1]?.move ?? ''
                   return (
-                    <li key={move.time}>
+                    <List.Item key={move.time}>
                       {index / 2 + 1}. {move.move} {blackMove}
-                    </li>
+                    </List.Item>
                   )
                 }
                 return []
               })}
               {boardData.result === 'pat' ? (
-                <li>
+                <List.Item>
                   <strong>Pat</strong>
-                </li>
+                </List.Item>
               ) : boardData.result === 'win' ? (
-                <li>
+                <List.Item>
                   <strong>Victoire de {boardData.winner?.pseudo}</strong>
-                </li>
+                </List.Item>
               ) : boardData.result === 'giveup' ? (
                 <>
-                  <li>
+                  <List.Item>
                     <em>
                       Abandon de{' '}
                       {boardData.players.black?.id === boardData.winner?.id ? boardData.players.white?.pseudo : boardData.players.black?.pseudo}
                     </em>
-                  </li>
-                  <li>
+                  </List.Item>
+                  <List.Item>
                     <strong>Victoire de {boardData.winner?.pseudo}</strong>
-                  </li>
+                  </List.Item>
                 </>
               ) : null}
-            </ul>
-          </div>
-        </div>
-        <DragOverlay className='DragOverlay' dropAnimation={dragDatas.withDropAnim ? undefined : null}>
+            </List>
+          </ScrollArea>
+        </Paper>
+        <DragOverlay className={classes.dragOverlay} dropAnimation={dragDatas.withDropAnim ? undefined : null}>
           {dragDatas.active && <Piece piece={dragDatas.active} isOverlay={true} />}
         </DragOverlay>
       </div>

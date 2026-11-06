@@ -3,4 +3,5 @@
 export { createWSClient, httpBatchLink, splitLink, wsLink } from '@trpc/client'
 export { createTRPCReact, getQueryKey } from '@trpc/react-query'
 export { type AppProps, type ClientApp, defineClientApp } from './defineApp'
+export { default as ErrorAlert } from './ErrorAlert'
 export { default as Loading } from './Loading'

@@ -1,4 +1,4 @@
-.ChessBoard {
+.chessBoard {
   flex: 1;
   display: flex;
   justify-content: center;
@@ -8,50 +8,49 @@
   box-sizing: border-box;
 }
 
-.ChessBoardContainer {
+/* positioned: the in-board overlays (game mode, promotion) cover it */
+.container {
   position: relative;
   max-width: 800px;
   width: 100%;
   min-height: 0;
 }
 
-.ChessBoardPanel {
+.panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border: 1px solid gray;
+  gap: var(--mantine-spacing-xs);
   width: min(250px, 20vw);
-  box-sizing: border-box;
-  padding: 12px;
+  min-height: 0;
 }
 
-.DragOverlay {
+.dragOverlay {
   cursor: grabbing;
 }
 
-.Board {
+.board {
   width: 100%;
-  background: white;
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-5));
   padding: 8px;
   box-sizing: border-box;
-  border-radius: 8px;
+  border-radius: var(--mantine-radius-md);
   display: flex;
   flex-direction: column;
 }
 
-.Row {
+.row {
   display: flex;
 }
 
-.isBlack .Row {
+.container[data-black] .row {
   flex-direction: row-reverse;
 }
 
-.isBlack .Board {
+.container[data-black] .board {
   flex-direction: column-reverse;
 }
 
-.LostPieces {
+.lostPieces {
   display: inline-block;
   pointer-events: none;
   touch-action: none;
@@ -59,18 +58,6 @@
   min-height: 0;
 }
 
-.LostPieces > .Piece {
+.lostPieces > img {
   width: 36px;
-}
-
-.history {
-  min-height: 0;
-}
-
-.centeredModalContent {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
 }
