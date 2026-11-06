@@ -1,7 +1,7 @@
-import { type AppApi, defineSharedStateApp } from '@platform/server'
-import { z } from 'zod'
+import { type AppApi, defineYDocApp } from '@platform/server'
 
-const word = defineSharedStateApp({ type: 'word', schema: z.string(), initial: () => '' })
+// the text lives in a Yjs document: concurrent edits merge, and the cursors of the others are shared (awareness)
+const word = defineYDocApp({ type: 'word' })
 
 export default word
 export type WordApi = AppApi<typeof word>

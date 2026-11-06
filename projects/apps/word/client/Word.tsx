@@ -1,43 +1,59 @@
-import { Paper } from '@mantine/core'
-import { type AppProps, ErrorAlert } from '@platform/client'
-import { type FormEvent, useRef, useState } from 'react'
-import { trpc } from './trpc'
+import { Badge, Group, Paper, Stack, Text } from '@mantine/core'
+import { type AppProps, ErrorAlert, Loading } from '@platform/client'
+import { type Peer, usePeers } from './peers'
+import RemoteCursors from './RemoteCursors'
+import { type BoardDoc, useBoardDoc } from './useBoardDoc'
+import { useYTextarea } from './useYTextarea'
 import classes from './Word.module.css'
 
-const Word = ({ boardId }: AppProps) => {
-  const contentEditableRef = useRef<HTMLDivElement>(null)
-  const [error, setError] = useState<string | undefined>()
-
-  trpc.word.watch.useSubscription(
-    { boardId },
-    {
-      onData(board) {
-        if (!contentEditableRef.current) return
-        if (contentEditableRef.current.textContent !== board.data) {
-          contentEditableRef.current.textContent = board.data
-        }
-      },
-      onError(err) {
-        console.error('Subscription error:', err)
-        setError(err.message)
-      }
-    }
+/** One badge per participant (a user with several tabs counts once) */
+const Participants = ({ peers, userId }: { peers: Peer[]; userId: string }) => {
+  const participants = [...new Map(peers.map(peer => [peer.user.id, peer])).values()]
+  return (
+    <Group gap='xs'>
+      {participants.map(({ user, color }) => (
+        <Badge key={user.id} color={color} variant={user.id === userId ? 'filled' : 'light'}>
+          {user.id === userId ? `${user.name} (you)` : user.name}
+        </Badge>
+      ))}
+    </Group>
   )
+}
 
-  const setWordMutation = trpc.word.set.useMutation()
+const Editor = ({ board, unsent, userId }: { board: BoardDoc; unsent: boolean; userId: string }) => {
+  const { text, textareaProps } = useYTextarea(board)
+  const peers = usePeers(board.awareness)
 
-  const onChangeWord = (e: FormEvent<HTMLElement>) => {
-    setWordMutation.mutate({ boardId, value: (e.target as HTMLElement).textContent ?? '' })
-  }
+  return (
+    <Stack gap='sm'>
+      <Group justify='space-between'>
+        <Participants peers={peers} userId={userId} />
+        {unsent && (
+          <Text size='xs' c='orange'>
+            Offline: your changes will be sent when the connection is back
+          </Text>
+        )}
+      </Group>
+      <Paper withBorder p='md'>
+        <div className={classes.editor}>
+          <textarea {...textareaProps} className={`${classes.surface} ${classes.input}`} aria-label='Text of the board' spellCheck />
+          <RemoteCursors doc={board.doc} text={text} peers={peers} />
+        </div>
+      </Paper>
+    </Stack>
+  )
+}
+
+const Word = ({ boardId, user }: AppProps) => {
+  const { board, synced, unsent, error } = useBoardDoc(boardId, user)
 
   if (error) {
     return <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
   }
-  return (
-    <Paper withBorder p='md'>
-      <div ref={contentEditableRef} className={classes.content} contentEditable onInput={onChangeWord} />
-    </Paper>
-  )
+  if (!board || !synced) {
+    return <Loading />
+  }
+  return <Editor board={board} unsent={unsent} userId={user.id} />
 }
 
 export default Word

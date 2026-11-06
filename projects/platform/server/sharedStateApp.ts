@@ -8,7 +8,7 @@ import { protectedProcedure, TRPCError } from './trpc'
  * Server side of an app whose board is one shared value (last write wins):
  * generates the board lifecycle and two procedures, `watch({ boardId })` and `set({ boardId, value })`.
  *
- * @example defineSharedStateApp({ type: 'word', schema: z.string(), initial: () => '' })
+ * @example defineSharedStateApp({ type: 'paint', schema: z.array(z.unknown()), initial: () => [] })
  */
 export const defineSharedStateApp = <const TType extends string, TSchema extends z.ZodType>({
   type,

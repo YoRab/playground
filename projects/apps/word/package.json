@@ -7,7 +7,10 @@
   "dependencies": {
     "@mantine/core": "9.7.5",
     "@mantine/hooks": "9.7.5",
+    "lib0": "0.2.119",
     "react": "19.3.1",
+    "y-protocols": "1.0.7",
+    "yjs": "13.6.33",
     "zod": "4.6.7"
   },
   "devDependencies": {
