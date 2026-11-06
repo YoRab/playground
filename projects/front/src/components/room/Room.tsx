@@ -81,9 +81,9 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
       ) : activeBoard.type === 'chess' ? (
         <ChessBoard user={user} room={room} boardId={activeBoard.id} />
       ) : activeBoard.type === 'reactPaint' ? (
-        <Paint user={user} room={room} boardId={activeBoard.id} />
+        <Paint boardId={activeBoard.id} />
       ) : activeBoard.type === 'word' ? (
-        <Word user={user} room={room} boardId={activeBoard.id} />
+        <Word boardId={activeBoard.id} />
       ) : null}
 
       <div className={`modal ${showNewGame ? ' is-active' : ''}`}>

@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import './paint.css'
-import type { Room, User } from '@common/model'
 import { trpc } from '@front/utils/trpc'
 import { Canvas, Editor, type StateData, useReactPaint, type DrawableShape } from '@yorab/react-paint'
 
-const Paint = ({ user, room, boardId }: { user: User; room: Room; boardId: string }) => {
+const Paint = ({ boardId }: { boardId: string }) => {
   const tempShapes = useRef<string | undefined>('[]')
   const [error, setError] = useState<string | undefined>()
 

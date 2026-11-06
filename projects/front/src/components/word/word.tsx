@@ -1,9 +1,8 @@
 import React, { type FormEvent, useRef, useState } from 'react'
 import './word.css'
-import type { Room, User } from '@common/model'
 import { trpc } from '@front/utils/trpc'
 
-const Word = ({ user, room, boardId }: { user: User; room: Room; boardId: string }) => {
+const Word = ({ boardId }: { boardId: string }) => {
   const contentEditableRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | undefined>()
 

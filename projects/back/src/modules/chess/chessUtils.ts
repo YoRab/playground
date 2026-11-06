@@ -478,7 +478,7 @@ const getKingMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = f
   return moves
 }
 
-const getRookMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
+const getRookMoves = (boardData: BoardData, active: PieceType): Move[] => {
   const { position } = active
   if (!position) return []
 
@@ -530,7 +530,7 @@ const getRookMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = f
   return moves
 }
 
-const getBishopMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
+const getBishopMoves = (boardData: BoardData, active: PieceType): Move[] => {
   const { color, position } = active
   if (!position) return []
 
@@ -589,11 +589,11 @@ const getBishopMoves = (boardData: BoardData, active: PieceType, onlyTakenMove =
   return moves
 }
 
-const getQueenMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
+const getQueenMoves = (boardData: BoardData, active: PieceType): Move[] => {
   return [...getRookMoves(boardData, active), ...getBishopMoves(boardData, active)]
 }
 
-const getKnightMoves = (boardData: BoardData, active: PieceType, onlyTakenMove = false): Move[] => {
+const getKnightMoves = (boardData: BoardData, active: PieceType): Move[] => {
   const { color, position } = active
   if (!position) return []
 
@@ -683,13 +683,13 @@ const getPiecesMoves = (boardData: BoardData, active: PieceType, onlyTakenMove =
     case 'king':
       return getKingMoves(boardData, active, onlyTakenMove)
     case 'queen':
-      return getQueenMoves(boardData, active, onlyTakenMove)
+      return getQueenMoves(boardData, active)
     case 'rook':
-      return getRookMoves(boardData, active, onlyTakenMove)
+      return getRookMoves(boardData, active)
     case 'knight':
-      return getKnightMoves(boardData, active, onlyTakenMove)
+      return getKnightMoves(boardData, active)
     case 'bishop':
-      return getBishopMoves(boardData, active, onlyTakenMove)
+      return getBishopMoves(boardData, active)
   }
 }
 

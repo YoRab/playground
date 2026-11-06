@@ -4,7 +4,7 @@ import useLocalStorage from '@front/hooks/useLocalStorage'
 import { trpc } from '@front/utils/trpc'
 import { useQueryClient } from '@tanstack/react-query'
 
-const Toolbar = ({ screen = '' }) => {
+const Toolbar = ({ screen: _screen = '' }) => {
   const { setItem } = useLocalStorage()
   const queryClient = useQueryClient()
 

@@ -5,15 +5,15 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc -p .",
-    "start": "npm run build && node dist/app.js",
-    "start:dev": "nodemon -r tsconfig-paths/register src/app.ts",
+    "start": "pnpm run build && node dist/app.js",
+    "dev": "nodemon -r tsconfig-paths/register src/app.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@trpc/server": "11.0.0-rc.528",
-    "common": "file:../common",
+    "common": "workspace:*",
     "cors": "2.8.5",
     "express": "4.21.0",
     "jsonwebtoken": "9.0.2",
@@ -28,6 +28,7 @@
     "@types/uuid": "10.0.0",
     "@types/ws": "8.5.12",
     "nodemon": "3.1.7",
+    "ts-node": "10.9.2",
     "tsconfig-paths": "4.2.0"
   }
 }
