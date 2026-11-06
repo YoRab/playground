@@ -1,7 +1,7 @@
+import type { YBoard } from '@platform/client'
 import { type ChangeEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type * as Y from 'yjs'
 import { toRelativePosition } from './peers'
-import type { BoardDoc } from './useBoardDoc'
 
 const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff
 const isLowSurrogate = (code: number) => code >= 0xdc00 && code <= 0xdfff
@@ -46,7 +46,8 @@ export const transformIndex = (index: number, delta: Y.YTextEvent['delta']) => {
  * Binds a `<textarea>` to the text of the board: local edits go to Yjs, remote ones are written to the textarea
  * without moving the caret, and the local selection is published in the awareness (the others display it).
  */
-export const useYTextarea = ({ doc, ytext, awareness }: BoardDoc) => {
+export const useYTextarea = ({ doc, awareness }: YBoard) => {
+  const ytext = doc.getText('content')
   const ref = useRef<HTMLTextAreaElement>(null)
   const [text, setText] = useState(() => ytext.toString())
 

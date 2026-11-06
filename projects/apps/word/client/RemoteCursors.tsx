@@ -1,6 +1,7 @@
+import { peerColorVar, usePeers, type YBoard } from '@platform/client'
 import type { CSSProperties, ReactNode } from 'react'
 import type * as Y from 'yjs'
-import { type Peer, peerColorVar, toIndex } from './peers'
+import { cursorStateSchema, toIndex } from './peers'
 import classes from './Word.module.css'
 
 type Range = { clientId: number; name: string; color: string; anchor: number; head: number }
@@ -12,7 +13,8 @@ const colorStyle = (color: string) => ({ '--peer-color': peerColorVar(color) }) 
  * It is a mirror of the textarea: same text and same typography (`.surface`) so that the text wraps at the same places,
  * but transparent, with the remote selections highlighted and a marker at each remote caret.
  */
-const RemoteCursors = ({ doc, text, peers }: { doc: Y.Doc; text: string; peers: Peer[] }) => {
+const RemoteCursors = ({ doc, awareness, text }: { doc: Y.Doc; awareness: YBoard['awareness']; text: string }) => {
+  const peers = usePeers(awareness, cursorStateSchema)
   const clamp = (index: number) => Math.min(Math.max(index, 0), text.length)
 
   const ranges = peers.flatMap((peer): Range[] => {

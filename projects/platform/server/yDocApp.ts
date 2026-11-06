@@ -8,16 +8,15 @@ import { createTopic } from './realtime'
 import { protectedProcedure, TRPCError } from './trpc'
 
 /** A change relayed to every client of a board. Binary Yjs payloads travel base64 encoded: tRPC speaks JSON. */
-type YDocChange = { kind: 'update' | 'awareness'; update: string }
+export type YDocChange = { kind: 'update' | 'awareness'; update: string }
 
 /** First message of a `sync` subscription: the whole state of the board */
-type YDocSnapshot = { kind: 'sync'; update: string; stateVector: string; awareness: string }
+export type YDocSnapshot = { kind: 'sync'; update: string; stateVector: string; awareness: string }
 
 /** Argument of the awareness `update` event: the ids of the clients whose state changed */
-type AwarenessChanges = { added: number[]; updated: number[]; removed: number[] }
+export type AwarenessChanges ={ added: number[]; updated: number[]; removed: number[] }
 
-// a keystroke weighs a few dozen bytes: this only stops abuse (about 1 MB of binary)
-const updateInput = z.object({ boardId: z.string(), update: z.string().max(1_500_000) })
+const MAX_AWARENESS_SIZE = 10_000
 
 /**
  * Server side of an app whose board is a Yjs document (CRDT: concurrent edits merge instead of overwriting each other),
@@ -29,7 +28,20 @@ const updateInput = z.object({ boardId: z.string(), update: z.string().max(1_500
  *
  * @example defineYDocApp({ type: 'word' })
  */
-export const defineYDocApp = <const TType extends string>({ type }: { type: TType }) => {
+export const defineYDocApp = <const TType extends string>({
+  type,
+  maxUpdateSize = 1_500_000
+}: {
+  type: TType
+  /**
+   * Longest update accepted, in base64 characters: it only stops abuse. A keystroke weighs a few dozen bytes,
+   * but a picture pasted on a drawing travels as a data URL.
+   */
+  maxUpdateSize?: number
+}) => {
+  const updateInput = z.object({ boardId: z.string(), update: z.string().max(maxUpdateSize) })
+  // an awareness state is a few hundred bytes: no need to accept as much as a document update
+  const awarenessInput = z.object({ boardId: z.string(), update: z.string().max(MAX_AWARENESS_SIZE) })
   const store = createBoardStore(() => {
     const doc = new Y.Doc()
     const awareness = new Awareness(doc)
@@ -115,7 +127,7 @@ export const defineYDocApp = <const TType extends string>({ type }: { type: TTyp
         return toBase64(Y.encodeStateVector(doc))
       }),
 
-      pushAwareness: protectedProcedure.input(updateInput).mutation(({ input }) => {
+      pushAwareness: protectedProcedure.input(awarenessInput).mutation(({ input }) => {
         const { awareness } = findBoard(input.boardId)
         applyOrReject(() => applyAwarenessUpdate(awareness, fromBase64(input.update), 'client'))
       })

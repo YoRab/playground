@@ -1,12 +1,22 @@
 import { fromBase64, toBase64 } from 'lib0/buffer'
 import { type Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-import type { trpc } from './trpc'
+import type { AwarenessChanges, YDocChange, YDocSnapshot } from '../server/yDocApp'
 
-type WordClient = ReturnType<typeof trpc.useUtils>['client']['word']
-
-/** Argument of the awareness `update` event: the ids of the clients whose state changed */
-type AwarenessChanges = { added: number[]; updated: number[]; removed: number[] }
+/**
+ * The procedures of a `defineYDocApp` board, as the vanilla tRPC client gives them: `trpc.useUtils().client.<app type>`.
+ * Typed by their shape, so that any app fits.
+ */
+export type YDocClient = {
+  sync: {
+    subscribe: (
+      input: { boardId: string; clientId: number },
+      observer: { onData: (message: YDocSnapshot | YDocChange) => void; onError: (err: { message: string }) => void }
+    ) => { unsubscribe: () => void }
+  }
+  push: { mutate: (input: { boardId: string; update: string }) => Promise<string> }
+  pushAwareness: { mutate: (input: { boardId: string; update: string }) => Promise<unknown> }
+}
 
 /** Origin of the changes received from the server: they must not be sent back */
 const REMOTE = Symbol('remote')
@@ -27,21 +37,21 @@ export type SyncStatus = {
  * the `sync` subscription brings the changes of the others, `push` / `pushAwareness` send the local ones.
  * Returns the function that disconnects.
  */
-export const syncBoardDoc = ({
+export const syncYDoc = ({
   client,
   boardId,
   doc,
   awareness,
   onStatus
 }: {
-  client: WordClient
+  client: YDocClient
   boardId: string
   doc: Y.Doc
   awareness: Awareness
   onStatus: (status: Partial<SyncStatus>) => void
 }) => {
   // What the server holds, as far as we know (null until the first sync). Each push sends everything it lacks,
-  // so a push that succeeds also delivers the changes of the pushes that failed (network error, offline typing).
+  // so a push that succeeds also delivers the changes of the pushes that failed (network error, offline edits).
   let serverStateVector: Uint8Array | null = null
   // local changes that the server may not have
   let needsPush = false
@@ -70,11 +80,25 @@ export const syncBoardDoc = ({
     else void pushDoc()
   }
 
-  const pushLocalAwareness = () => {
+  // like the document: one request at a time, the latest state leaves with the next one (a moving pointer changes it 20 times a second)
+  let pushingAwareness = false
+  let awarenessChanged = false
+
+  const pushLocalAwareness = async () => {
     if (disconnected || serverStateVector === null) return
-    const update = toBase64(encodeAwarenessUpdate(awareness, [doc.clientID]))
-    // not worth a retry: the awareness renews the local state every 15 s
-    client.pushAwareness.mutate({ boardId, update }).catch(() => {})
+    if (pushingAwareness) {
+      awarenessChanged = true
+      return
+    }
+    pushingAwareness = true
+    awarenessChanged = false
+    try {
+      await client.pushAwareness.mutate({ boardId, update: toBase64(encodeAwarenessUpdate(awareness, [doc.clientID])) })
+    } catch {
+      // not worth a retry: the awareness renews the local state every 15 s
+    }
+    pushingAwareness = false
+    if (awarenessChanged) void pushLocalAwareness()
   }
 
   const onDocUpdate = (_update: Uint8Array, origin: unknown) => {
@@ -86,7 +110,7 @@ export const syncBoardDoc = ({
   // whatever the origin: a remote update that removes our own state (stale disconnection) must be answered
   // with our state, which the awareness has just re-stamped with a newer clock
   const onAwarenessUpdate = ({ added, updated, removed }: AwarenessChanges) => {
-    if ([...added, ...updated, ...removed].includes(doc.clientID)) pushLocalAwareness()
+    if (added.includes(doc.clientID) || updated.includes(doc.clientID) || removed.includes(doc.clientID)) void pushLocalAwareness()
   }
 
   doc.on('update', onDocUpdate)
@@ -104,7 +128,7 @@ export const syncBoardDoc = ({
             serverStateVector = fromBase64(message.stateVector)
             onStatus({ synced: true })
             void pushDoc()
-            pushLocalAwareness()
+            void pushLocalAwareness()
             break
           case 'update':
             Y.applyUpdate(doc, fromBase64(message.update), REMOTE)
