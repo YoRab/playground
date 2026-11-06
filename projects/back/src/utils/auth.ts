@@ -8,7 +8,7 @@ export const decodeJwtToken = async (token: string): Promise<User | null> => {
     const decoded = jwt.verify(token, JWT_SECRET_KEY) as { id: string }
     const user = await findUserById(decoded?.id)
     return user
-  } catch (err) {
+  } catch (_err) {
     return null
   }
 }

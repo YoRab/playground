@@ -7,7 +7,12 @@ const Draggable = ({
   children,
   element,
   disabled = false
-}: { id: string; children: React.ReactNode; element?: React.ElementType; disabled?: boolean }) => {
+}: {
+  id: string
+  children: React.ReactNode
+  element?: React.ElementType
+  disabled?: boolean
+}) => {
   const Element = element || 'div'
   const { isDragging, attributes, listeners, setNodeRef } = useDraggable({
     disabled,

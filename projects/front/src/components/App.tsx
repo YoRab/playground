@@ -1,4 +1,3 @@
-import React from 'react'
 import './App.css'
 import '@front/utils/trpc'
 import UseTrpc from '@front/hooks/useTrpc'

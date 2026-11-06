@@ -1,4 +1,4 @@
-import { PERMISSIONS, PERMISSION_CHESS_IA } from '@back/constants/permissions'
+import { PERMISSION_CHESS_IA, PERMISSIONS } from '@back/constants/permissions'
 import { createAI, findAIByPseudo } from '@back/modules/chess/AI/chessAIRepo'
 import { decodeJwtToken } from '@back/utils/auth'
 import type { User } from '@common/model'

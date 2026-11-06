@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import './home.css'
 import type { Room } from '@common/model'
 import { trpc } from '@front/utils/trpc'

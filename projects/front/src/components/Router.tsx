@@ -1,10 +1,11 @@
 import { getPathRoute } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
-import React, { useCallback, useEffect, useState } from 'react'
-import Loading from './Loading'
-import Toolbar from './Toolbar'
+import type React from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Home from './home/home'
+import Loading from './Loading'
 import Login from './login/Login'
+import Toolbar from './Toolbar'
 import '@yorab/react-paint/react-paint.css'
 import Room from '@front/components/room/Room'
 import Footer from './Footer'
@@ -15,7 +16,12 @@ const WithToolbar = ({
   toolbar = false,
   footer = false,
   name
-}: { Component: () => JSX.Element; toolbar?: boolean; footer?: boolean; name: string }) => {
+}: {
+  Component: () => React.JSX.Element
+  toolbar?: boolean
+  footer?: boolean
+  name: string
+}) => {
   return (
     <>
       {toolbar && <Toolbar screen={name} />}

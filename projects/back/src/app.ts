@@ -2,7 +2,7 @@ import { createContext } from '@back/services/context'
 import { createHTTPServer } from '@trpc/server/adapters/standalone'
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
 import cors from 'cors'
-import ws from 'ws'
+import { WebSocketServer } from 'ws'
 import appRouter, { type ClientRouter } from './router'
 
 const port = +(process.env.PORT || 4001)
@@ -17,7 +17,7 @@ const httpServer = createHTTPServer({
   createContext
 })
 
-const wss = new ws.Server({
+const wss = new WebSocketServer({
   server: httpServer
 })
 

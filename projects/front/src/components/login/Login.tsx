@@ -2,7 +2,7 @@ import type React from 'react'
 import { useState } from 'react'
 import './Login.css'
 import useLocalStorage from '@front/hooks/useLocalStorage'
-import { reconnectWsClient } from '@front/hooks/useTrpc'
+import { resetWsClient } from '@front/hooks/useTrpc'
 import { trpc } from '@front/utils/trpc'
 import { useQueryClient } from '@tanstack/react-query'
 import { getQueryKey } from '@trpc/react-query'
@@ -18,7 +18,7 @@ const Login = () => {
       setItem('jwt_token', jwtToken)
       const postListKey = getQueryKey(trpc.public.getMe)
       queryClient.invalidateQueries({ queryKey: postListKey })
-      reconnectWsClient()
+      resetWsClient()
     }
   })
   const errors = error ?? login.error?.message

@@ -1,18 +1,20 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "files": { "includes": ["**", "!**/*.svg"] },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "style": {
         "noNonNullAssertion": "off"
       },
       "a11y": {
         "useKeyWithClickEvents": "off",
         "useValidAnchor": "off"
+      },
+      "complexity": {
+        "noImportantStyles": "off"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"

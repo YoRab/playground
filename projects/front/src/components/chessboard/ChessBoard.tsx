@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Cell from './Cell'
 import './ChessBoard.css'
 import type { ChessGame, PieceType } from '@common/chess'
@@ -134,13 +134,14 @@ const ChessBoard = ({ user, room, boardId }: { user: User; room: Room; boardId: 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className='ChessBoard'>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-move complements drag and drop, which is pointer-only */}
         <div
           className={`ChessBoardContainer${dragDatas.active ? ' isdragging' : ''}${userColor === 'black' ? ' isBlack' : ''}`}
           onClick={handleBoardClick}
         >
           <div className='Board'>
             {boardData.board.map((boardRow, rowIndex) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              // biome-ignore lint/suspicious/noArrayIndexKey: board rows and cells are positional and never reordered
               <div key={rowIndex} className='Row'>
                 {boardRow.map((boardCell, colIndex) => {
                   const id = `${rowIndex}-${colIndex}`

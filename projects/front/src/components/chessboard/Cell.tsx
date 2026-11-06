@@ -2,8 +2,8 @@ import type React from 'react'
 import './Cell.css'
 import type { PieceType } from '@common/chess'
 import { useDroppable } from '@dnd-kit/core'
-import Piece from './Piece'
 import Draggable from './dnd/Draggable'
+import Piece from './Piece'
 
 const COL_KEY = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
@@ -42,6 +42,7 @@ const Cell = ({
   const disabled = isGameEnded || !isUserTurn || (piece && piece?.color !== playerTurn)
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: click-to-move complements drag and drop, which is pointer-only
     <div
       className={`Cell${isOver ? ' isover' : ''}${dropEnabled ? (disabled ? ' Highlighted Catchable' : ' Highlighted') : ''}${
         isSelected ? ' isselected' : ''

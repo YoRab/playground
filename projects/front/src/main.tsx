@@ -1,5 +1,4 @@
 import App from '@front/components/App'
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 

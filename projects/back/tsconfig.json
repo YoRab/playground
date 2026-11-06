@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2020" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "target": "es2022" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
     "module": "commonjs",
     "paths": {
       "@common/*": ["../common/src/*"],
@@ -8,6 +8,7 @@
     },
     "strict": true,
     "esModuleInterop": true,
+    "rootDir": "./src",
     "outDir": "./dist" /* Specify an output folder for all emitted files. */,
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './paint.css'
 import { trpc } from '@front/utils/trpc'
 import { Canvas, type DrawableShape, Editor, type StateData, useReactPaint } from '@yorab/react-paint'
@@ -7,7 +7,7 @@ const Paint = ({ boardId }: { boardId: string }) => {
   const tempShapes = useRef<string | undefined>('[]')
   const [error, setError] = useState<string | undefined>()
 
-  const { registerEvent, unregisterEvent, resetCanvas, editorProps, canvasProps } = useReactPaint({
+  const paint = useReactPaint({
     mode: 'editor',
     width: 1280,
     height: 720
@@ -16,13 +16,13 @@ const Paint = ({ boardId }: { boardId: string }) => {
   trpc.paint.watchPaint.useSubscription(
     { boardId },
     {
-      onData(paint) {
+      onData(received) {
         console.log('received dataaaa !')
-        if (JSON.stringify(paint.data) === tempShapes.current) {
+        if (JSON.stringify(received.data) === tempShapes.current) {
           return
         }
         console.log('reset')
-        resetCanvas(paint.data as DrawableShape[])
+        paint.resetCanvas(received.data as DrawableShape[])
       },
       onError(err) {
         console.error('Subscription error:', err)
@@ -41,17 +41,14 @@ const Paint = ({ boardId }: { boardId: string }) => {
       tempShapes.current = newData
       setPaintMutate({ boardId, value: data.shapes })
     }
-    registerEvent('dataChanged', onDataChanged)
-    return () => {
-      unregisterEvent('dataChanged', onDataChanged)
-    }
-  }, [registerEvent, unregisterEvent, setPaintMutate, boardId])
+    return paint.registerEvent('dataChanged', onDataChanged)
+  }, [paint, setPaintMutate, boardId])
 
   return (
     <div className='ScreenPaint'>
       {error ?? (
-        <Editor editorProps={editorProps}>
-          <Canvas canvasProps={canvasProps} />
+        <Editor paint={paint}>
+          <Canvas paint={paint} />
         </Editor>
       )}
     </div>

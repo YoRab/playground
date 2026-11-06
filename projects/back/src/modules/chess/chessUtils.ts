@@ -531,7 +531,7 @@ const getRookMoves = (boardData: BoardData, active: PieceType): Move[] => {
 }
 
 const getBishopMoves = (boardData: BoardData, active: PieceType): Move[] => {
-  const { color, position } = active
+  const { position } = active
   if (!position) return []
 
   const moves: Move[] = []
@@ -594,7 +594,7 @@ const getQueenMoves = (boardData: BoardData, active: PieceType): Move[] => {
 }
 
 const getKnightMoves = (boardData: BoardData, active: PieceType): Move[] => {
-  const { color, position } = active
+  const { position } = active
   if (!position) return []
 
   const moves: Move[] = []
@@ -746,13 +746,7 @@ const getMovesWithoutChessMate = ({
   return movesWithoutChessMate
 }
 
-export const getDroppableCells = ({
-  boardData,
-  active
-}: {
-  boardData: BoardData
-  active: PieceType
-}): Move[] => {
+export const getDroppableCells = ({ boardData, active }: { boardData: BoardData; active: PieceType }): Move[] => {
   const moves = getPiecesMoves(boardData, active)
   const movesWithoutChessMate = getMovesWithoutChessMate({
     boardData,

@@ -1,4 +1,3 @@
-import type { PieceType, PieceTypeType } from '@common/chess'
 import blackBishop from '@front/assets/pieces/bishop_black.svg'
 import whiteBishop from '@front/assets/pieces/bishop_white.svg'
 import blackKing from '@front/assets/pieces/king_black.svg'

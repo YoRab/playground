@@ -32,10 +32,7 @@ const reactPaintApi = {
     return true
   },
 
-  edit: async (data: {
-    reactPaintId: string
-    newData: unknown
-  }) => {
+  edit: async (data: { reactPaintId: string; newData: unknown }) => {
     const reactPaintIndex = reactPaints.findIndex(item => item.id === data.reactPaintId)
 
     if (reactPaintIndex < 0) return null

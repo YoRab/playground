@@ -32,10 +32,7 @@ const wordApi = {
     return true
   },
 
-  edit: async (data: {
-    wordId: string
-    newWord: string
-  }) => {
+  edit: async (data: { wordId: string; newWord: string }) => {
     const wordIndex = words.findIndex(item => item.id === data.wordId)
 
     if (wordIndex < 0) return null

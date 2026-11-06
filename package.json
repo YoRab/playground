@@ -18,8 +18,8 @@
     "lint": "biome check --write projects/back/src projects/front/src projects/common/src"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.2",
-    "@types/node": "22.7.0",
-    "typescript": "5.6.2"
+    "@biomejs/biome": "2.6.5",
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2"
   }
 }

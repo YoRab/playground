@@ -39,16 +39,16 @@
   flex-direction: column;
 }
 
+.Row {
+  display: flex;
+}
+
 .isBlack .Row {
   flex-direction: row-reverse;
 }
 
 .isBlack .Board {
   flex-direction: column-reverse;
-}
-
-.Row {
-  display: flex;
 }
 
 .LostPieces {

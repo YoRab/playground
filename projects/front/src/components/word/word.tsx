@@ -1,4 +1,4 @@
-import React, { type FormEvent, useRef, useState } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 import './word.css'
 import { trpc } from '@front/utils/trpc'
 

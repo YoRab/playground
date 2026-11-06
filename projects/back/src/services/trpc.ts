@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { TRPCError, initTRPC } from '@trpc/server'
+import { initTRPC, TRPCError } from '@trpc/server'
 import type { Context } from './context'
 
 /**

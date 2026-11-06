@@ -1,4 +1,4 @@
-import { PIECES, getInitBoard } from '@back/modules/chess/chessUtils'
+import { getInitBoard, PIECES } from '@back/modules/chess/chessUtils'
 import type { PieceType } from '@common/chess'
 import { v4 as uuidv4 } from 'uuid'
 export type DBChess = {
@@ -98,11 +98,7 @@ const chessApi = {
     return games[gameIndex]
   },
 
-  endGame: async (data: {
-    boardId: string
-    winner: { type: 'human' | 'AI'; id: string } | null
-    result: string
-  }) => {
+  endGame: async (data: { boardId: string; winner: { type: 'human' | 'AI'; id: string } | null; result: string }) => {
     const { boardId, winner, result } = data
     const gameIndex = games.findIndex(item => item.id === boardId)
 

@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import './Room.css'
 import type { Room, User } from '@common/model'
-import Loading from '@front/components/Loading'
 import ChessBoard from '@front/components/chessboard/ChessBoard'
+import Loading from '@front/components/Loading'
 import Paint from '@front/components/paint/paint'
 import Word from '@front/components/word/word'
 import { PIECES_PIC } from '@front/constants/pieces'
@@ -87,6 +87,7 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
       ) : null}
 
       <div className={`modal ${showNewGame ? ' is-active' : ''}`}>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop, the close and cancel buttons cover keyboard users */}
         <div className='modal-background' onClick={() => setShowNewGame(false)} />
         <div className='modal-card'>
           <header className='modal-card-head'>
@@ -94,16 +95,16 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
             <button type='button' className='delete' aria-label='close' onClick={() => setShowNewGame(false)} />
           </header>
           <section className='modal-card-body chooseBoardContent'>
-            <div className='chooseBoardButton' onClick={() => newBoard('chess')}>
+            <button type='button' className='chooseBoardButton' onClick={() => newBoard('chess')}>
               <img className='Piece isoverlay' alt='' src={PIECES_PIC.get('wpawn')} />
-              <div>Chess board</div>
-            </div>
-            <div className='chooseBoardButton' onClick={() => newBoard('reactPaint')}>
+              <span>Chess board</span>
+            </button>
+            <button type='button' className='chooseBoardButton' onClick={() => newBoard('reactPaint')}>
               Paint (incoming)
-            </div>
-            <div className='chooseBoardButton' onClick={() => newBoard('word')}>
+            </button>
+            <button type='button' className='chooseBoardButton' onClick={() => newBoard('word')}>
               Word (incoming)
-            </div>
+            </button>
           </section>
           <footer className='modal-card-foot'>
             <div className='buttons'>
