@@ -1,14 +1,13 @@
+import Room from '@front/components/room/Room'
 import { getPathRoute } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
+import { Loading } from '@platform/client'
 import type React from 'react'
 import { useCallback, useEffect, useState } from 'react'
+import Footer from './Footer'
 import Home from './home/home'
-import Loading from './Loading'
 import Login from './login/Login'
 import Toolbar from './Toolbar'
-import '@yorab/react-paint/react-paint.css'
-import Room from '@front/components/room/Room'
-import Footer from './Footer'
 import './Router.css'
 
 const WithToolbar = ({

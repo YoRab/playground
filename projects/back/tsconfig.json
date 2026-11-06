@@ -1,15 +1,13 @@
 {
+  // type checking only: the server runs from the sources with tsx (dev and prod),
+  // which resolves the path aliases of tsconfig.base.json (@back, @platform, @apps)
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "es2022" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
-    "module": "commonjs",
-    "paths": {
-      "@common/*": ["../common/src/*"],
-      "@back/*": ["./src/*"]
-    },
-    "strict": true,
-    "esModuleInterop": true,
-    "rootDir": "./src",
-    "outDir": "./dist" /* Specify an output folder for all emitted files. */,
-    "skipLibCheck": true /* Skip type checking all .d.ts files. */
-  }
+    "lib": ["es2022"],
+    "types": ["node"],
+    "declaration": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true
+  },
+  "include": ["src"]
 }

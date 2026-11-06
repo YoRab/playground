@@ -1,0 +1,16 @@
+{
+  "name": "@apps/chess",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chess game (server-side move validation), playable against humans or external AI clients",
+  "license": "ISC",
+  "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0"
+  }
+}

@@ -1,12 +1,9 @@
 import * as authRepo from '@back/repository/auth'
 import { findMany as findRooms } from '@back/repository/room'
 import * as userRepo from '@back/repository/user'
-import { ee, publicProcedure, router } from '@back/services/trpc'
-import type { Room } from '@common/model'
-import { observable } from '@trpc/server/observable'
+import { ROOMS_KEY, roomsTopic } from '@back/services/rooms'
+import { liveQuery, publicProcedure, router } from '@platform/server'
 import { z } from 'zod'
-
-const REFRESH_ROOMS_LIST_EVENTS = ['addNewRoom', 'deleteRoom']
 
 const publicRouter = router({
   getMe: publicProcedure.query(opts => {
@@ -19,24 +16,7 @@ const publicRouter = router({
   login: publicProcedure.input(z.object({ pseudo: z.string() })).mutation(async opts => {
     return await authRepo.login(opts.input)
   }),
-  onGetRooms: publicProcedure.subscription(() => {
-    return observable<Room[]>(emit => {
-      const onRefreshRooms = async () => {
-        const rooms = await findRooms()
-        emit.next(rooms)
-      }
-
-      for (const eventName of REFRESH_ROOMS_LIST_EVENTS) {
-        ee.on(eventName, onRefreshRooms)
-      }
-      onRefreshRooms()
-      return () => {
-        for (const eventName of REFRESH_ROOMS_LIST_EVENTS) {
-          ee.off(eventName, onRefreshRooms)
-        }
-      }
-    })
-  })
+  onGetRooms: publicProcedure.subscription(({ signal }) => liveQuery({ topic: roomsTopic, key: ROOMS_KEY, fetch: findRooms, signal }))
 })
 
 export default publicRouter

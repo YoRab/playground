@@ -1,219 +1,136 @@
 # Playground
 
-A full-stack monorepo application featuring multiple interactive games and applications including Chess (with AI), Paint, and Word games. Built with TypeScript, React, Express, and tRPC for type-safe communication.
+A sandbox for real-time multiplayer mini-apps (chess with AI, paint, word, counter…). A host shell provides identification, rooms, presence and real-time transport; each app is a self-contained package plugged into it. TypeScript end to end, with React, Vite and tRPC.
 
 ## 🎮 Features
 
-- **Chess Game**: Interactive chess with AI opponent support
-- **Paint Application**: Collaborative drawing/painting tool
-- **Word Game**: Word-based game functionality
-- **Real-time Communication**: WebSocket support for live updates
-- **Authentication**: JWT-based user authentication
-- **Type-Safe API**: End-to-end type safety with tRPC
+- **Rooms**: create a room, invite people, add boards (one board = one app instance)
+- **Chess**: moves validated by the server, play against a human or an external AI client
+- **Paint**, **Word**, **Counter**: shared boards (last write wins)
+- **Real-time**: tRPC subscriptions over WebSocket, live presence of the users in a room
+- **Identification**: nickname only, JWT token (no password)
+- **Storage**: in memory (everything is lost when the server restarts)
 
 ## 🏗️ Project Structure
 
-This is a monorepo workspace managed with pnpm workspaces, containing three main projects:
+A pnpm workspace:
 
 ```
 playground/
 ├── projects/
-│   ├── back/          # Backend server (Express + tRPC)
-│   ├── front/         # Frontend application (React + Vite)
-│   └── common/        # Shared TypeScript types and models
-├── package.json       # Root workspace configuration
-└── README.md
+│   ├── platform/      # SDK shared by the host and the apps (the only package depending on tRPC)
+│   │   ├── server/    #   tRPC instance & procedures, realtime topics, presence, board store, app contract
+│   │   ├── client/    #   app contract, tRPC client runtime, shared UI (Loading)
+│   │   └── model.ts   #   User, Room, Board
+│   ├── apps/          # one package per app
+│   │   ├── chess/     #   shared/ (rules), server/ (game + AI client API), client/ (board UI)
+│   │   ├── paint/
+│   │   ├── word/
+│   │   └── counter/   #   smallest app: a living example of the contract
+│   ├── back/          # host server: entry point, identification, rooms, app registry
+│   └── front/         # host shell: login, home, room screen, app registry
+├── tsconfig.base.json # path aliases: @platform/*, @apps/*, @back/*, @front/*
+└── pnpm-workspace.yaml
 ```
 
-### Backend (`projects/back`)
-- Express server with tRPC
-- WebSocket support for real-time communication
-- JWT authentication
-- Modular architecture with separate routers for each game/feature
-- Modules: Chess (with AI), Paint, Word
+Dependency graph: `platform` ← `apps/*` ← `back` (the `server/` entries) and `front` (the `client/` entries).
 
-### Frontend (`projects/front`)
-- React 18 with TypeScript
-- Vite for fast development and building
-- tRPC client with React Query
-- Drag-and-drop functionality (@dnd-kit)
-- Hash-based routing
-- Components for Chess, Paint, Word, and Room management
+## 🧩 Adding an app
 
-### Common (`projects/common`)
-- Shared TypeScript type definitions
-- Models used across frontend and backend
+1. Create `projects/apps/<name>/` with a `package.json` (`"name": "@apps/<name>"`, its own dependencies, e.g. `react`, `zod`).
+2. **Server** – `server/index.ts`:
+   ```ts
+   import { type AppApi, defineSharedStateApp } from '@platform/server'
+   import { z } from 'zod'
+
+   const counter = defineSharedStateApp({ type: 'counter', schema: z.number().int(), initial: () => 0 })
+
+   export default counter
+   export type CounterApi = AppApi<typeof counter>
+   ```
+   `defineSharedStateApp` is enough when a board is one shared value: it generates the board lifecycle and the `watch` / `set` procedures. For custom logic, use `defineServerApp({ type, create, remove, router })` with `createTopic` / `liveQuery` (see `apps/chess/server`).
+3. **Client** – `client/trpc.ts` (`createTRPCReact<CounterApi>()` from `@platform/client`), a component receiving `AppProps` (`{ user, room, boardId }`), and `client/index.ts`:
+   ```ts
+   export default defineClientApp({ label: 'Counter', Component: lazy(() => import('./Counter')) })
+   ```
+4. **Register** it: one line in [projects/back/src/apps.ts](projects/back/src/apps.ts) and one in [projects/front/src/apps.ts](projects/front/src/apps.ts). The build fails if an app is registered on the server and not on the client.
+5. `pnpm install` to link the new package.
+
+Rules of thumb:
+- the `type` of an app is its tRPC namespace (`trpc.<type>.*`): it must be unique and must not be `public` or `protected` (nor the namespace of an external client). The server refuses to start otherwise;
+- import tRPC only from `@platform/server` / `@platform/client`, never from `@trpc/*`: one copy of tRPC at runtime is what lets the apps share the React context of the shell.
+
+### External clients (bots, agents)
+
+An app can let a client living outside the shell play in it, by declaring `external` in `defineServerApp`. The host needs no change: it reads what the apps declare.
+
+```ts
+defineServerApp({
+  type: 'chess',
+  // …
+  external: {
+    namespace: 'chessAI',                 // procedures served as trpc.chessAI.*, hidden from the shell client's types
+    permission: 'chess-ia',               // permission the client needs (guard the procedures with withPermissionsProcedure)
+    authenticate: ({ name }: ExternalParams) => (name ? findOrCreateAI(name) : null),  // who is it, from the WebSocket connection params
+    router: chessAIRouter
+  }
+})
+```
+
+The only host-side configuration is the API key → permission table in [projects/back/src/constants/permissions.ts](projects/back/src/constants/permissions.ts). Annotate the parameter of `authenticate`: TypeScript then keeps the precise type of `router`.
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **Express**: Web server framework
-- **tRPC**: End-to-end typesafe APIs
-- **WebSocket (ws)**: Real-time bidirectional communication
-- **JWT (jsonwebtoken)**: Authentication
-- **Zod**: Schema validation
-- **TypeScript**: Type safety
-
-### Frontend
-- **React 18**: UI library
-- **Vite**: Build tool and dev server
-- **tRPC Client**: Type-safe API client
-- **React Query (@tanstack/react-query)**: Data fetching and caching
-- **@dnd-kit**: Drag and drop functionality
-- **@yorab/react-paint**: Paint component library
-- **TypeScript**: Type safety
-
-### Development Tools
-- **Biome**: Fast linter and formatter
-- **TypeScript**: Type checking
-- **pnpm workspaces**: Monorepo management
+- **Server**: tRPC 11 (standalone HTTP adapter + `ws` WebSocket adapter), Zod 4, jsonwebtoken, run from the sources with **tsx**
+- **Client**: React 19, Vite 8, tRPC React Query client, @dnd-kit (chess), @yorab/react-paint (paint)
+- **Tooling**: TypeScript 7, Biome 2, pnpm workspaces
 
 ## 🚀 Getting Started
 
-### Prerequisites
+Prerequisites: Node.js 22+ and pnpm (version pinned by `packageManager` in the root `package.json`).
 
-- Node.js (v18 or higher recommended)
-- pnpm (the exact version is pinned by `packageManager` in the root `package.json`)
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd playground
-```
-
-2. Install dependencies:
 ```bash
 pnpm install
+pnpm start          # backend (tsx watch, port 4001) + frontend (Vite, exposed on the network)
 ```
 
-This will install dependencies for all workspace projects.
-
-### Development
-
-Start both the backend and frontend in development mode:
-
-```bash
-pnpm start
-```
-
-This runs:
-- Backend server on `http://localhost:4001` (or PORT from environment)
-- Frontend dev server (accessible via the host network)
-
-Or run them separately:
-
-```bash
-# Backend only
-pnpm start:server
-
-# Frontend only
-pnpm start:client
-```
-
-### Building
-
-Build all projects:
-
-```bash
-pnpm build
-```
-
-Build individual projects:
-
-```bash
-pnpm build:common   # Build shared types
-pnpm build:server   # Build backend
-pnpm build:client   # Build frontend
-```
-
-### Linting
-
-Format and lint all projects:
-
-```bash
-pnpm lint
-```
+Or separately: `pnpm start:server`, `pnpm start:client`.
 
 ## 📜 Available Scripts
 
 ### Root Level
-- `pnpm start` - Start both backend and frontend concurrently
-- `pnpm start:server` - Start backend only
-- `pnpm start:client` - Start frontend only
-- `pnpm build` - Build all projects
-- `pnpm build:common` - Build common package
-- `pnpm build:server` - Build backend
-- `pnpm build:client` - Build frontend
-- `pnpm lint` - Lint and format all projects
+- `pnpm start` - Start backend and frontend in development mode
+- `pnpm start:server` / `pnpm start:client` - Start one of them
+- `pnpm build` - Type check the backend, then type check and bundle the frontend
+- `pnpm lint` - Lint and format (back, front, platform, apps)
 
 ### Backend (`projects/back`)
-- `pnpm start` - Build and start production server
-- `pnpm dev` - Start development server with nodemon
-- `pnpm build` - Compile TypeScript
+- `pnpm dev` - Start the server with `tsx watch` (restarts on any change in back, platform or apps)
+- `pnpm start` - Start the server with `tsx` (no compilation step: tsx resolves the path aliases)
+- `pnpm build` - Type check only
 
 ### Frontend (`projects/front`)
-- `pnpm dev` - Start Vite dev server
-- `pnpm build` - Build for production
-- `pnpm preview` - Preview production build
+- `pnpm dev` - Start the Vite dev server
+- `pnpm build` - Type check and build for production (one chunk per app)
+- `pnpm preview` - Preview the production build
 
 ## 🔧 Configuration
 
-### Environment Variables
+| Variable | Used by | Default |
+|---|---|---|
+| `PORT` | backend | `4001` |
+| `VITE_API_URL` | frontend | same host as the page, port `4001` |
+| `VITE_WS_URL` | frontend | `VITE_API_URL` with the `ws` protocol |
 
-The backend server uses the following environment variable:
-- `PORT`: Server port (default: 4001)
-
-### TypeScript Configuration
-
-Each project has its own `tsconfig.json` with path aliases configured:
-- Backend: `@back/*` aliases
-- Frontend: `@front/*` aliases
-- Common: Shared types
-
-## 📁 Key Directories
-
-### Backend Structure
-```
-back/src/
-├── api/              # API route handlers
-├── modules/          # Feature modules (chess, paint, word)
-│   ├── chess/        # Chess game logic and AI
-│   ├── paint/        # Paint application
-│   └── word/         # Word game
-├── repository/       # Data access layer
-├── router/           # tRPC routers
-├── services/         # Core services (context, trpc)
-└── utils/            # Utility functions
-```
-
-### Frontend Structure
-```
-front/src/
-├── components/       # React components
-│   ├── chessboard/   # Chess board components
-│   ├── paint/        # Paint component
-│   ├── word/         # Word game component
-│   └── ...
-├── hooks/            # Custom React hooks
-├── utils/            # Utility functions
-└── constants/        # Application constants
-```
-
-## 🔐 Authentication
-
-The application uses JWT-based authentication. Users can:
-- Login through the `/login` route
-- Access protected routes after authentication
-- Use authenticated tRPC procedures
+The JWT secret is read from `projects/back/src/constants/jwt.ts` (git-ignored): `export const JWT_SECRET_KEY = '…'`.
 
 ## 🌐 API
 
-The backend exposes a tRPC API with:
-- Public routes (authentication, public data)
-- Protected routes (user-specific, game actions)
-- WebSocket subscriptions for real-time updates
+The tRPC router of the backend is made of:
+- `public`: login, current user, live list of rooms
+- `protected`: rooms (create, delete, watch with presence) and boards (add/remove, delegated to the app registry)
+- one namespace per app (`chess`, `paint`, `word`, `counter`)
+- the namespaces of the external clients declared by the apps (`chessAI` for the chess AIs, authenticated by an API key: `apiKey` + `name` in the WebSocket connection params). They are served but not part of the type of the shell client
 
 ## 📝 License
 

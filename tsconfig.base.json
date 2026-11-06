@@ -16,7 +16,8 @@
     "strict": true,
     "skipLibCheck": true,
     "paths": {
-      "@common/*": ["./projects/common/src/*"],
+      "@platform/*": ["./projects/platform/*"],
+      "@apps/*": ["./projects/apps/*"],
       "@back/*": ["./projects/back/src/*"],
       "@front/*": ["./projects/front/src/*"]
     }

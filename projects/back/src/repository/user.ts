@@ -1,12 +1,6 @@
-import userApi from '@back/api/user'
-import type { User } from '@common/model'
+import type { User } from '@platform/model'
+import { users as userApi } from '@platform/server'
 
-export const findMany = async (): Promise<User[]> => {
-  const users = await userApi.findMany()
-  return users
-}
+export const findMany = async (): Promise<User[]> => userApi.findMany()
 
-export const findUserById = async (id: string): Promise<User | null> => {
-  const user = await userApi.findById(id)
-  return user
-}
+export const findUserById = async (id: string): Promise<User | null> => userApi.findById(id)

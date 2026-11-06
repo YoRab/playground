@@ -1,22 +1,18 @@
-import { ChessAIRouter, chessRouter } from '@back/modules/chess/chessRouter'
-import paintRouter from '@back/modules/paint/paintRouter'
-import wordRouter from '@back/modules/word/wordRouter'
+import { appRouters, externalRouters } from '@back/apps'
 import protectedRouter from '@back/router/protectedRouter'
 import publicRouter from '@back/router/publicRouter'
-import { router } from '@back/services/trpc'
+import { mergeRouters, router } from '@platform/server'
 
-const appRouter = router({
+// what the client of the shell can call (and is typed against)
+const clientRouter = router({
   public: publicRouter,
   protected: protectedRouter,
-  chess: chessRouter,
-  chessAI: ChessAIRouter,
-  word: wordRouter,
-  paint: paintRouter
+  ...appRouters
 })
-type OmitRouter<Path extends string> = Omit<typeof appRouter, '_def'> & {
-  _def: Omit<(typeof appRouter)['_def'], 'record'> & { record: Omit<(typeof appRouter)['_def']['record'], Path> }
-}
-// Omit chessAI causes it will not be used by main client
-export type ClientRouter = OmitRouter<'chessAI'>
+
+// what the server serves: the same, plus the procedures of the external clients (bots, agents…)
+const appRouter = mergeRouters(clientRouter, router(externalRouters))
+
+export type ClientRouter = typeof clientRouter
 
 export default appRouter

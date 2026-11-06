@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './home.css'
-import type { Room } from '@common/model'
 import { trpc } from '@front/utils/trpc'
+import type { Room } from '@platform/model'
 
 const Home = () => {
   const [rooms, setRooms] = useState<Room[]>([])

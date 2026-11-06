@@ -11,11 +11,10 @@
     "start": "pnpm -r --parallel dev",
     "start:client": "pnpm --filter front dev",
     "start:server": "pnpm --filter back dev",
-    "build": "pnpm build:common && pnpm build:client && pnpm build:server",
+    "build": "pnpm build:server && pnpm build:client",
     "build:client": "pnpm --filter front build",
-    "build:common": "pnpm --filter common build",
     "build:server": "pnpm --filter back build",
-    "lint": "biome check --write projects/back/src projects/front/src projects/common/src"
+    "lint": "biome check --write projects/back/src projects/front/src projects/platform projects/apps"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.5",

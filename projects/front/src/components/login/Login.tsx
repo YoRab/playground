@@ -4,8 +4,8 @@ import './Login.css'
 import useLocalStorage from '@front/hooks/useLocalStorage'
 import { resetWsClient } from '@front/hooks/useTrpc'
 import { trpc } from '@front/utils/trpc'
+import { getQueryKey } from '@platform/client'
 import { useQueryClient } from '@tanstack/react-query'
-import { getQueryKey } from '@trpc/react-query'
 
 const Login = () => {
   const [pseudo, setPseudo] = useState('')

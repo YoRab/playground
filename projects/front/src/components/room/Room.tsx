@@ -1,13 +1,11 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import './Room.css'
-import type { Room, User } from '@common/model'
-import ChessBoard from '@front/components/chessboard/ChessBoard'
-import Loading from '@front/components/Loading'
-import Paint from '@front/components/paint/paint'
-import Word from '@front/components/word/word'
-import { PIECES_PIC } from '@front/constants/pieces'
+import type { AppType } from '@back/apps'
+import { clientAppEntries, findClientApp } from '@front/apps'
 import { getPathParams } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
+import { Loading } from '@platform/client'
+import type { Room, User } from '@platform/model'
 
 const RoomInner = ({ user, room }: { user: User; room: Room }) => {
   const [showNewGame, setShowNewGame] = useState(false)
@@ -15,6 +13,7 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
   const [activeTabIndex, setActiveTabIndex] = useState(room.boards.length)
 
   const activeBoard = activeTabIndex > 0 ? room.boards[activeTabIndex - 1] : undefined
+  const ActiveApp = activeBoard && findClientApp(activeBoard.type)?.Component
   const addNewBoardMutation = trpc.protected.addBoard.useMutation({
     onSuccess: data => {
       console.log('board created', data)
@@ -30,7 +29,7 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
     }
   })
 
-  const newBoard = (type: 'chess' | 'reactPaint' | 'word') => {
+  const newBoard = (type: AppType) => {
     setShowNewGame(false)
     addNewBoardMutation.mutate({
       type,
@@ -78,13 +77,13 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
         ) : (
           <div className='CenteredBoard'>Waiting for {room.owner?.pseudo ?? ''}</div>
         )
-      ) : activeBoard.type === 'chess' ? (
-        <ChessBoard user={user} room={room} boardId={activeBoard.id} />
-      ) : activeBoard.type === 'reactPaint' ? (
-        <Paint boardId={activeBoard.id} />
-      ) : activeBoard.type === 'word' ? (
-        <Word boardId={activeBoard.id} />
-      ) : null}
+      ) : ActiveApp ? (
+        <Suspense fallback={<Loading />}>
+          <ActiveApp key={activeBoard.id} user={user} room={room} boardId={activeBoard.id} />
+        </Suspense>
+      ) : (
+        <div className='CenteredBoard'>Unknown board type: {activeBoard.type}</div>
+      )}
 
       <div className={`modal ${showNewGame ? ' is-active' : ''}`}>
         {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop, the close and cancel buttons cover keyboard users */}
@@ -95,16 +94,12 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
             <button type='button' className='delete' aria-label='close' onClick={() => setShowNewGame(false)} />
           </header>
           <section className='modal-card-body chooseBoardContent'>
-            <button type='button' className='chooseBoardButton' onClick={() => newBoard('chess')}>
-              <img className='Piece isoverlay' alt='' src={PIECES_PIC.get('wpawn')} />
-              <span>Chess board</span>
-            </button>
-            <button type='button' className='chooseBoardButton' onClick={() => newBoard('reactPaint')}>
-              Paint (incoming)
-            </button>
-            <button type='button' className='chooseBoardButton' onClick={() => newBoard('word')}>
-              Word (incoming)
-            </button>
+            {clientAppEntries.map(([type, app]) => (
+              <button key={type} type='button' className='chooseBoardButton' onClick={() => newBoard(type)}>
+                {app.icon && <img alt='' src={app.icon} />}
+                <span>{app.label}</span>
+              </button>
+            ))}
           </section>
           <footer className='modal-card-foot'>
             <div className='buttons'>

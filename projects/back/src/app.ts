@@ -1,6 +1,5 @@
 import { createContext } from '@back/services/context'
-import { createHTTPServer } from '@trpc/server/adapters/standalone'
-import { applyWSSHandler } from '@trpc/server/adapters/ws'
+import { applyWSSHandler, createHTTPServer } from '@platform/server'
 import cors from 'cors'
 import { WebSocketServer } from 'ws'
 import appRouter, { type ClientRouter } from './router'
