@@ -6,7 +6,8 @@ A sandbox for real-time multiplayer mini-apps (chess with AI, paint, word…). A
 
 - **Rooms**: create a room, invite people, add boards (one board = one app instance)
 - **Chess**: moves validated by the server, play against a human or an external AI client
-- **Paint**, **Word**: shared boards (last write wins)
+- **Paint**: shared board (last write wins)
+- **Word**: shared text synced with Yjs (concurrent edits merge, remote cursors shown)
 - **Real-time**: tRPC subscriptions over WebSocket, live presence of the users in a room
 - **Identification**: nickname only, JWT token (no password)
 - **Storage**: in memory (everything is lost when the server restarts)
@@ -81,7 +82,7 @@ The only host-side configuration is the API key → permission table in [project
 ## 🛠️ Tech Stack
 
 - **Server**: tRPC 11 (standalone HTTP adapter + `ws` WebSocket adapter), Zod 4, jsonwebtoken, run from the sources with **tsx**
-- **Client**: React 19, Vite 8, tRPC React Query client, @dnd-kit (chess), @yorab/react-paint (paint)
+- **Client**: React 19, Vite 8, tRPC React Query client, @dnd-kit (chess), @yorab/react-paint (paint), Yjs (word)
 - **Tooling**: TypeScript 7, Biome 2, pnpm workspaces
 
 ## 🚀 Getting Started
