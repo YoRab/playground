@@ -1,6 +1,6 @@
 import { PERMISSION_CHESS_IA } from '@back/constants/permissions'
-import * as chessRepo from '@back/modules/chess/chessRepo'
 import * as chessAIRepo from '@back/modules/chess/AI/chessAIRepo'
+import * as chessRepo from '@back/modules/chess/chessRepo'
 import { ee, withPermissionsProcedure } from '@back/services/trpc'
 import type { ChessGame } from '@common/chess'
 import { observable } from '@trpc/server/observable'

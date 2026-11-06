@@ -1,5 +1,5 @@
-import reactPaintApi, { type DBReactPaint } from '@back/modules/paint/paintApi'
 import userApi from '@back/api/user'
+import reactPaintApi, { type DBReactPaint } from '@back/modules/paint/paintApi'
 import type { ReactPaint } from '@common/reactPaint'
 
 const resolveUsers = async (paint?: DBReactPaint): Promise<ReactPaint | undefined> => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import './paint.css'
 import { trpc } from '@front/utils/trpc'
-import { Canvas, Editor, type StateData, useReactPaint, type DrawableShape } from '@yorab/react-paint'
+import { Canvas, type DrawableShape, Editor, type StateData, useReactPaint } from '@yorab/react-paint'
 
 const Paint = ({ boardId }: { boardId: string }) => {
   const tempShapes = useRef<string | undefined>('[]')

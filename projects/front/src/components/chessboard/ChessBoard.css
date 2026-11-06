@@ -59,16 +59,13 @@
   min-height: 0;
 }
 
-.LostPieces>.Piece {
+.LostPieces > .Piece {
   width: 36px;
 }
-
-.ChoicePlayers {}
 
 .history {
   min-height: 0;
 }
-
 
 .centeredModalContent {
   display: flex;

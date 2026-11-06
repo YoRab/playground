@@ -88,7 +88,7 @@ const ChessBoard = ({ user, room, boardId }: { user: User; room: Room; boardId: 
     })
 
     const pieceId = currentActive.id
-    const newPosition = (over.data.current as any).position
+    const newPosition = over.data.current?.position
 
     const piece = boardData?.pieces.find(piece => piece.id === pieceId)
     if (piece?.type === 'pawn' && newPosition[0] % 7 === 0) {

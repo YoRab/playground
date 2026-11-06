@@ -1,11 +1,11 @@
 .Home .title button {
-    margin: 0 0 0 1rem;
+  margin: 0 0 0 1rem;
 }
 
 .Home .cell {
-    max-width: min(100%, 40rem);
+  max-width: min(100%, 40rem);
 }
 
 .Home .grid {
-    --bulma-grid-column-min: 20rem;
+  --bulma-grid-column-min: 20rem;
 }

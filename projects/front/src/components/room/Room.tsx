@@ -5,9 +5,9 @@ import Loading from '@front/components/Loading'
 import ChessBoard from '@front/components/chessboard/ChessBoard'
 import Paint from '@front/components/paint/paint'
 import Word from '@front/components/word/word'
+import { PIECES_PIC } from '@front/constants/pieces'
 import { getPathParams } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
-import { PIECES_PIC } from '@front/constants/pieces'
 
 const RoomInner = ({ user, room }: { user: User; room: Room }) => {
   const [showNewGame, setShowNewGame] = useState(false)

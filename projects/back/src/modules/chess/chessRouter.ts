@@ -1,5 +1,5 @@
-import * as chessRepo from '@back/modules/chess/chessRepo'
 import * as chessAIRepo from '@back/modules/chess/AI/chessAIRepo'
+import * as chessRepo from '@back/modules/chess/chessRepo'
 import { ee, protectedProcedure } from '@back/services/trpc'
 import type { ChessGame } from '@common/chess'
 import { observable } from '@trpc/server/observable'

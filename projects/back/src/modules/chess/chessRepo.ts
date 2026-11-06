@@ -1,9 +1,9 @@
 import chessApi, { type DBChess } from '@back/modules/chess/chessApi'
-import * as userRepo from '@back/repository/user'
-import * as chessAIRepo from './AI/chessAIRepo'
 import { encodeToAlgebraicNotation, getDroppableCells, isThereChess, moveCell } from '@back/modules/chess/chessUtils'
+import * as userRepo from '@back/repository/user'
 import type { ChessGame, PieceType, PieceTypeType } from '@common/chess'
 import type { User } from '@common/model'
+import * as chessAIRepo from './AI/chessAIRepo'
 
 const resolveUser = async (user?: { type: 'human' | 'AI'; id: string } | undefined | null): Promise<User | undefined> => {
   if (!user) return undefined

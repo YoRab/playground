@@ -1,9 +1,9 @@
+import { ChessAIRouter, chessRouter } from '@back/modules/chess/chessRouter'
+import paintRouter from '@back/modules/paint/paintRouter'
+import wordRouter from '@back/modules/word/wordRouter'
 import protectedRouter from '@back/router/protectedRouter'
 import publicRouter from '@back/router/publicRouter'
 import { router } from '@back/services/trpc'
-import { chessRouter, ChessAIRouter } from '@back/modules/chess/chessRouter'
-import paintRouter from '@back/modules/paint/paintRouter'
-import wordRouter from '@back/modules/word/wordRouter'
 
 const appRouter = router({
   public: publicRouter,

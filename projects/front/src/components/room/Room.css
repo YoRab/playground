@@ -31,7 +31,6 @@
   align-content: center;
 }
 
-
 .chooseBoardButton {
   box-sizing: border-box;
   padding: 16px;
@@ -54,17 +53,15 @@
 .chooseBoardButton:hover {
   border-color: #7b61ff;
   color: #7b61ff;
-
 }
 
-.chooseBoardButton>* {
+.chooseBoardButton > * {
   min-height: 0;
 }
 
-.chooseBoardButton>img {
+.chooseBoardButton > img {
   width: auto;
 }
-
 
 .BoardDelete {
   text-align: right;
