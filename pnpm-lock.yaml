@@ -195,19 +195,6 @@ importers:
         specifier: 19.3.0
         version: 19.3.0
 
-  projects/apps/counter:
-    dependencies:
-      react:
-        specifier: 19.3.1
-        version: 19.3.1
-      zod:
-        specifier: 4.6.7
-        version: 4.6.7
-    devDependencies:
-      '@types/react':
-        specifier: 19.3.0
-        version: 19.3.0
-
   projects/apps/paint:
     dependencies:
       '@yorab/react-paint':

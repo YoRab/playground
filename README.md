@@ -1,12 +1,12 @@
 # Playground
 
-A sandbox for real-time multiplayer mini-apps (chess with AI, paint, word, counter…). A host shell provides identification, rooms, presence and real-time transport; each app is a self-contained package plugged into it. TypeScript end to end, with React, Vite and tRPC.
+A sandbox for real-time multiplayer mini-apps (chess with AI, paint, word…). A host shell provides identification, rooms, presence and real-time transport; each app is a self-contained package plugged into it. TypeScript end to end, with React, Vite and tRPC.
 
 ## 🎮 Features
 
 - **Rooms**: create a room, invite people, add boards (one board = one app instance)
 - **Chess**: moves validated by the server, play against a human or an external AI client
-- **Paint**, **Word**, **Counter**: shared boards (last write wins)
+- **Paint**, **Word**: shared boards (last write wins)
 - **Real-time**: tRPC subscriptions over WebSocket, live presence of the users in a room
 - **Identification**: nickname only, JWT token (no password)
 - **Storage**: in memory (everything is lost when the server restarts)
@@ -25,8 +25,7 @@ playground/
 │   ├── apps/          # one package per app
 │   │   ├── chess/     #   shared/ (rules), server/ (game + AI client API), client/ (board UI)
 │   │   ├── paint/
-│   │   ├── word/
-│   │   └── counter/   #   smallest app: a living example of the contract
+│   │   └── word/
 │   ├── back/          # host server: entry point, identification, rooms, app registry
 │   └── front/         # host shell: login, home, room screen, app registry
 ├── tsconfig.base.json # path aliases: @platform/*, @apps/*, @back/*, @front/*
@@ -129,7 +128,7 @@ The JWT secret is read from `projects/back/src/constants/jwt.ts` (git-ignored): 
 The tRPC router of the backend is made of:
 - `public`: login, current user, live list of rooms
 - `protected`: rooms (create, delete, watch with presence) and boards (add/remove, delegated to the app registry)
-- one namespace per app (`chess`, `paint`, `word`, `counter`)
+- one namespace per app (`chess`, `paint`, `word`)
 - the namespaces of the external clients declared by the apps (`chessAI` for the chess AIs, authenticated by an API key: `apiKey` + `name` in the WebSocket connection params). They are served but not part of the type of the shell client
 
 ## 📝 License
