@@ -1,10 +1,11 @@
 import chess from '@apps/chess/server'
+import mineio from '@apps/mineio/server'
 import paint from '@apps/paint/server'
 import word from '@apps/word/server'
 import type { ExternalClient, ServerApp } from '@platform/server'
 
 /** Server side of every app available in the rooms: adding an app = one line here (+ one in front/src/apps.ts) */
-export const serverApps = [chess, paint, word] as const
+export const serverApps = [chess, mineio, paint, word] as const
 
 type ServerApps = (typeof serverApps)[number]
 export type AppType = ServerApps['type']

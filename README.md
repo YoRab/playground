@@ -8,6 +8,7 @@ A sandbox for real-time multiplayer mini-apps (chess with AI, paint, word…). A
 - **Chess**: moves validated by the server, play against a human or an external AI client
 - **Paint**: shared drawing synced with Yjs (shapes drawn at the same time merge, pointers of the others shown)
 - **Word**: shared text synced with Yjs (concurrent edits merge, remote cursors shown)
+- **Mine.io**: real-time territory minesweeper against humans and bots, the server holding the mines and running the bots (from the sibling repository [mine.io](../mine.io))
 - **Real-time**: tRPC subscriptions over WebSocket, live presence of the users in a room
 - **Identification**: nickname only, JWT token (no password)
 - **Storage**: in memory (everything is lost when the server restarts)
@@ -25,6 +26,7 @@ playground/
 │   │   └── model.ts   #   User, Room, Board
 │   ├── apps/          # one package per app
 │   │   ├── chess/     #   shared/ (rules), server/ (game + AI client API), client/ (board UI)
+│   │   ├── mineio/    #   server/ (lobby, match, bots), client/ (lobby, board of @yorab/mine.io)
 │   │   ├── paint/
 │   │   └── word/
 │   ├── back/          # host server: entry point, identification, rooms, app registry
@@ -34,6 +36,8 @@ playground/
 ```
 
 Dependency graph: `platform` ← `apps/*` ← `back` (the `server/` entries) and `front` (the `client/` entries).
+
+`apps/mineio` depends on the library of the sibling repository `mine.io`, through a local link (`link:../../../../mine.io/packages/mine.io`): clone it next to this repository and run `pnpm install` in it before installing here.
 
 ## 🧩 Adding an app
 

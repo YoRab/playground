@@ -22,7 +22,7 @@ There are no tests (`pnpm test` is a stub). Type-checking is the correctness gat
 
 The apps (`projects/apps/*`) and `platform` have no tsconfig or build script of their own: their `server/` code is type-checked through `back`, their `client/` code through `front`, via the path aliases. The server is never compiled: `tsx` runs the TypeScript sources and resolves the aliases.
 
-Local setup: `projects/back/src/constants/jwt.ts` is git-ignored and must exist: `export const JWT_SECRET_KEY = '…'`.
+Local setup: `projects/back/src/constants/jwt.ts` is git-ignored and must exist: `export const JWT_SECRET_KEY = '…'`. The sibling repository `../mine.io` must exist too, with its dependencies installed (`pnpm install` there): `apps/mineio` links its library.
 
 ## Architecture
 
@@ -55,7 +55,7 @@ Board lifecycle: the room owner calls `protected.addBoard({ type, roomId })` →
 ### Two ways to write an app's server
 
 - `defineYDocApp({ type, maxUpdateSize? })` — the board is a Yjs document (CRDT) plus awareness (cursors, pointers), relayed over tRPC (no y-websocket): `sync` subscription (snapshot first, then changes), `push`, `pushAwareness`. Binary payloads travel base64 (tRPC is JSON); `maxUpdateSize` caps a document update (paint raises it: pasted pictures are data URLs). The client side is shared in `platform/client`: `useYDoc` (document + awareness, `board` is null until the first sync) built on `syncYDoc` (`yDoc.ts`: pushes the diff against the last known server state vector, so a successful push also carries earlier failed ones; retries every 2 s; tags remote changes with a `REMOTE` origin so they are not echoed back), `usePeers(awareness, schema)` (validated participants, with the fields the app adds to the awareness state) and `PresenceBar`. The server drops a client's awareness state when its subscription ends. Used by **word** (text in a `Y.Text`, carets in the awareness) and **paint** (`Y.Map` of shapes + `Y.Array` of their order, glued to react-paint by `usePaintDoc`; pointers in the awareness).
-- `defineServerApp({ type, create, remove, router, external? })` — custom logic. Used by **chess**: moves are validated server-side with the rules in `apps/chess/shared/`, shared with the client.
+- `defineServerApp({ type, create, remove, router, external? })` — custom logic. Used by **chess**: moves are validated server-side with the rules in `apps/chess/shared/`, shared with the client. And by **mineio**: the rules, bots and board come from `@yorab/mine.io` (sibling repository `../mine.io`, linked with `link:`; its `exports` point to TypeScript sources, type-checked here with Playground's options, and `front/vite.config.ts` allows `../../../mine.io` in `server.fs.allow`). The server owns the match (`createMatch` from `@yorab/mine.io/engine`, bots included, in-process) and only sends the public view: the hidden mines never leave it. Its `sync` subscription is a custom generator: a snapshot (lobby + encoded view + hovers) on subscription and on every lobby change, then numbered `events` (a client seeing a gap in `seq` subscribes again with a new `attempt`), and unnumbered `hover`s. Lobby: humans take a corner, the owner adds bots, sets the grid and starts; `backToLobby` keeps the corners. The client feeds the library's zustand store (`createBoardStore`) and renders its `MineBoard` positioned absolutely (its container's height comes from flex).
 
 ### Realtime model (platform/server/realtime.ts)
 
@@ -74,7 +74,7 @@ Board lifecycle: the room owner calls `protected.addBoard({ type, roomId })` →
 
 ### Storage
 
-Everything is in memory (`Map`s in `platform/server/boardStore.ts`, `back/src/repository/*`, `apps/chess/server/store.ts`): a server restart wipes all users, rooms and boards. `platform/server/users.ts` is the shared user store that apps can read.
+Everything is in memory (`Map`s in `platform/server/boardStore.ts`, `back/src/repository/*`, `apps/chess/server/store.ts`, `apps/mineio/server/store.ts`): a server restart wipes all users, rooms and boards. `platform/server/users.ts` is the shared user store that apps can read.
 
 ## Scope decisions
 

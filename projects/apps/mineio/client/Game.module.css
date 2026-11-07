@@ -1,0 +1,22 @@
+.game {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+  width: 100%;
+  min-height: 0;
+}
+
+.scores {
+  flex: 1;
+}
+
+/* fills the room when its height is bounded, never smaller than a playable board otherwise */
+.board {
+  position: relative;
+  flex: 1;
+  min-height: max(420px, 60dvh);
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+}
