@@ -1,11 +1,13 @@
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent } from '@dnd-kit/core'
-import { ActionIcon, Button, Group, List, Overlay, Paper, ScrollArea, Stack, Text, Title } from '@mantine/core'
+import { ActionIcon, Alert, Button, Group, Overlay, Paper, Popover, ScrollArea, Stack, Table, Text, Title } from '@mantine/core'
 import { type AppProps, Loading } from '@platform/client'
-import { type ReactNode, useState } from 'react'
+import { IconFlag, IconTrophy } from '@tabler/icons-react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { type ChessGame, type PieceType, PROMOTIONS } from '../shared/types'
 import Cell from './Cell'
 import classes from './ChessBoard.module.css'
 import Piece from './Piece'
+import PlayerStrip from './PlayerStrip'
 import { trpc } from './trpc'
 
 // a dialog confined to the board itself (not a full Mantine Modal: both choices below are mandatory, nothing to dismiss)
@@ -16,6 +18,99 @@ const BoardOverlay = ({ children }: { children: ReactNode }) => (
     </Paper>
   </Overlay>
 )
+
+/** How the game ended, above the moves */
+const GameResult = ({ game }: { game: ChessGame }) => {
+  if (game.result === 'pat') {
+    return (
+      <Alert color='gray' title='Stalemate'>
+        Nobody can move: it is a draw.
+      </Alert>
+    )
+  }
+  if (game.result === 'win' || game.result === 'giveup') {
+    const loser = game.players.black?.id === game.winner?.id ? game.players.white : game.players.black
+    return (
+      <Alert color='teal' icon={<IconTrophy />} title={`${game.winner?.pseudo ?? 'Someone'} wins`}>
+        {game.result === 'giveup' ? `${loser?.pseudo ?? 'The opponent'} resigned.` : 'Checkmate.'}
+      </Alert>
+    )
+  }
+  return null
+}
+
+/** The moves, one row per pair (white, black), scrolled to the last one */
+const MoveList = ({ history }: { history: ChessGame['history'] }) => {
+  const viewport = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (history.length) viewport.current?.scrollTo({ top: viewport.current.scrollHeight, behavior: 'smooth' })
+  }, [history.length])
+
+  if (history.length === 0) {
+    return (
+      <Text size='sm' c='dimmed'>
+        No move yet
+      </Text>
+    )
+  }
+  return (
+    <ScrollArea flex={1} mih={0} viewportRef={viewport}>
+      <Table striped withRowBorders={false} verticalSpacing={4} fz='sm'>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th w={36}>#</Table.Th>
+            <Table.Th>White</Table.Th>
+            <Table.Th>Black</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {/* one row per pair: white's move, then black's if it has been played */}
+          {Array.from({ length: Math.ceil(history.length / 2) }, (_, pair) => (
+            <Table.Tr key={history[2 * pair]?.time}>
+              <Table.Td c='dimmed'>{pair + 1}.</Table.Td>
+              <Table.Td>{history[2 * pair]?.move}</Table.Td>
+              <Table.Td>{history[2 * pair + 1]?.move}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </ScrollArea>
+  )
+}
+
+/** Resigning asks for a confirmation: one misclick would end the game */
+const ResignButton = ({ onConfirm, loading }: { onConfirm: () => void; loading: boolean }) => {
+  const [opened, setOpened] = useState(false)
+  return (
+    <Popover opened={opened} onChange={setOpened} position='bottom' withArrow shadow='md'>
+      <Popover.Target>
+        <Button color='red' variant='light' leftSection={<IconFlag size={16} />} loading={loading} onClick={() => setOpened(value => !value)}>
+          Resign
+        </Button>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Text size='sm' mb='xs'>
+          Resign this game?
+        </Text>
+        <Group gap='xs' justify='flex-end'>
+          <Button size='xs' variant='default' onClick={() => setOpened(false)}>
+            Cancel
+          </Button>
+          <Button
+            size='xs'
+            color='red'
+            onClick={() => {
+              setOpened(false)
+              onConfirm()
+            }}
+          >
+            Resign
+          </Button>
+        </Group>
+      </Popover.Dropdown>
+    </Popover>
+  )
+}
 
 const ChessBoard = ({ user, room, boardId }: AppProps) => {
   const [modeSelection, setModeSelection] = useState<{ isMulti: boolean | undefined; ai?: string | undefined }>({ isMulti: undefined })
@@ -40,7 +135,6 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
     { boardId },
     {
       onData(data) {
-        console.log('received dataaaa !', data)
         data && setBoardData(data)
       },
       onError(err) {
@@ -49,23 +143,9 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
     }
   )
 
-  const movePieceMutation = trpc.chess.movePiece.useMutation({
-    onSuccess: data => {
-      console.log('piece moved', data)
-    }
-  })
-
-  const addPlayerMutation = trpc.chess.addPlayer.useMutation({
-    onSuccess: data => {
-      console.log('addPlayer', data)
-    }
-  })
-
-  const giveUpMutation = trpc.chess.giveUp.useMutation({
-    onSuccess: data => {
-      console.log('giveUp', data)
-    }
-  })
+  const movePieceMutation = trpc.chess.movePiece.useMutation()
+  const addPlayerMutation = trpc.chess.addPlayer.useMutation()
+  const giveUpMutation = trpc.chess.giveUp.useMutation()
 
   const handleBoardClick = () => {
     setDragDatas({
@@ -113,10 +193,6 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
     setShallPromote(undefined)
   }
 
-  const giveUp = () => {
-    giveUpMutation.mutate({ boardId })
-  }
-
   const handleDropOnCell = (row: number, col: number) => {
     const currentActive = dragDatas.active
     if (!currentActive) return
@@ -140,132 +216,112 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
   const needBothPlayer = boardData?.players.white === undefined && boardData?.players.black === undefined
 
   if (!boardData) return <Loading />
+
+  // the user plays from the bottom of the board (white for a spectator)
+  const bottomColor = userColor ?? 'white'
+  const topColor = bottomColor === 'white' ? 'black' : 'white'
+  // startedAt is only set by the first move (and the server refuses to resign before it)
+  const canResign = !!userColor && !!boardData.startedAt && !boardData.endedAt
+  const strip = (color: PieceType['color']) => (
+    <PlayerStrip
+      player={boardData.players[color]}
+      color={color}
+      captured={boardData.pieces.filter(piece => piece.position === null && piece.color !== color)}
+      active={!needPlayer && !boardData.endedAt && boardData.playerTurn === color}
+      isMe={userColor === color}
+    />
+  )
+
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={classes.chessBoard}>
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-move complements drag and drop, which is pointer-only */}
-        <div className={classes.container} data-black={userColor === 'black' || undefined} onClick={handleBoardClick}>
-          <div className={classes.board}>
-            {boardData.board.map((boardRow, rowIndex) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: board rows and cells are positional and never reordered
-              <div key={rowIndex} className={classes.row}>
-                {boardRow.map((boardCell, colIndex) => {
-                  const id = `${rowIndex}-${colIndex}`
-                  const piece = boardCell && !needPlayer ? boardData.pieces.find(piece => piece.id === boardCell) : undefined
-                  const dropEnabled = !!dragDatas.enabledCells.find(cell => cell[0] === rowIndex && cell[1] === colIndex)
-                  const isSelected = !!(dragDatas.active && dragDatas.active?.id === piece?.id)
-                  return (
-                    <Cell
-                      key={id}
-                      id={id}
-                      col={colIndex}
-                      row={rowIndex}
-                      piece={piece}
-                      dropEnabled={dropEnabled}
-                      isSelected={isSelected}
-                      handleDropOnCell={handleDropOnCell}
-                      playerTurn={boardData.playerTurn}
-                      userColor={userColor}
-                      isGameEnded={!!boardData.endedAt}
-                    />
-                  )
-                })}
-              </div>
-            ))}
+        <div className={classes.play}>
+          <div className={classes.layout}>
+            <div className={classes.column}>
+              {strip(topColor)}
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-move complements drag and drop, which is pointer-only */}
+              <div className={classes.board} data-black={userColor === 'black' || undefined} onClick={handleBoardClick}>
+                {boardData.board.map((boardRow, rowIndex) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: board rows and cells are positional and never reordered
+                  <div key={rowIndex} className={classes.row}>
+                    {boardRow.map((boardCell, colIndex) => {
+                      const id = `${rowIndex}-${colIndex}`
+                      const piece = boardCell && !needPlayer ? boardData.pieces.find(piece => piece.id === boardCell) : undefined
+                      const dropEnabled = !!dragDatas.enabledCells.find(cell => cell[0] === rowIndex && cell[1] === colIndex)
+                      const isSelected = !!(dragDatas.active && dragDatas.active?.id === piece?.id)
+                      return (
+                        <Cell
+                          key={id}
+                          id={id}
+                          col={colIndex}
+                          row={rowIndex}
+                          piece={piece}
+                          dropEnabled={dropEnabled}
+                          isSelected={isSelected}
+                          handleDropOnCell={handleDropOnCell}
+                          playerTurn={boardData.playerTurn}
+                          userColor={userColor}
+                          isGameEnded={!!boardData.endedAt}
+                        />
+                      )
+                    })}
+                  </div>
+                ))}
 
-            {needPlayer && (
-              <BoardOverlay>
-                {userColor || (needBothPlayer && !isOwner) ? (
-                  <Text ta='center'>En attente d'un joueur</Text>
-                ) : isOwner && modeSelection.isMulti === undefined ? (
-                  <Stack gap='sm'>
-                    <Button onClick={() => setModeSelection({ isMulti: true })}>Jouer contre un humain</Button>
-                    {readyAIs?.map(readyAI => (
-                      <Button key={readyAI.id} variant='light' onClick={() => setModeSelection({ isMulti: false, ai: readyAI.id })}>
-                        Jouer contre {readyAI.pseudo}
-                      </Button>
-                    ))}
-                  </Stack>
-                ) : (
-                  <Group justify='center' gap='sm'>
-                    <Button variant='default' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
-                      Jouer les blancs
-                    </Button>
-                    <Button color='dark' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
-                      Jouer les noirs
-                    </Button>
-                  </Group>
+                {needPlayer && (
+                  <BoardOverlay>
+                    {userColor || (needBothPlayer && !isOwner) ? (
+                      <Text ta='center'>Waiting for an opponent</Text>
+                    ) : isOwner && modeSelection.isMulti === undefined ? (
+                      <Stack gap='sm'>
+                        <Button onClick={() => setModeSelection({ isMulti: true })}>Play against a human</Button>
+                        {readyAIs?.map(readyAI => (
+                          <Button key={readyAI.id} variant='light' onClick={() => setModeSelection({ isMulti: false, ai: readyAI.id })}>
+                            Play against {readyAI.pseudo}
+                          </Button>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Group justify='center' gap='sm'>
+                        <Button variant='default' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
+                          Play white
+                        </Button>
+                        <Button color='dark' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
+                          Play black
+                        </Button>
+                      </Group>
+                    )}
+                  </BoardOverlay>
                 )}
-              </BoardOverlay>
-            )}
 
-            {shallPromote && (
-              <BoardOverlay>
-                <Stack gap='sm' align='center'>
-                  <Title order={4}>Promotion d'un pion</Title>
-                  <Text size='sm'>Choisissez une pièce en laquelle promouvoir votre pion</Text>
-                  <Group gap='sm'>
-                    {PROMOTIONS.map(piece => (
-                      <ActionIcon key={piece} variant='default' size={64} aria-label={piece} onClick={() => choosePromotion(piece)}>
-                        <Piece piece={{ type: piece, color: userColor! }} />
-                      </ActionIcon>
-                    ))}
-                  </Group>
-                </Stack>
-              </BoardOverlay>
-            )}
+                {shallPromote && (
+                  <BoardOverlay>
+                    <Stack gap='sm' align='center'>
+                      <Title order={4}>Pawn promotion</Title>
+                      <Text size='sm'>Choose a piece to promote your pawn to</Text>
+                      <Group gap='sm'>
+                        {PROMOTIONS.map(piece => (
+                          <ActionIcon key={piece} variant='default' size={64} aria-label={piece} onClick={() => choosePromotion(piece)}>
+                            <Piece piece={{ type: piece, color: userColor! }} />
+                          </ActionIcon>
+                        ))}
+                      </Group>
+                    </Stack>
+                  </BoardOverlay>
+                )}
+              </div>
+              {strip(bottomColor)}
+            </div>
+            <Paper withBorder p='sm' className={classes.panel}>
+              <Group justify='space-between' mih={30}>
+                <Text fw={600}>Moves</Text>
+                {canResign && <ResignButton onConfirm={() => giveUpMutation.mutate({ boardId })} loading={giveUpMutation.isPending} />}
+              </Group>
+              <GameResult game={boardData} />
+              <MoveList history={boardData.history} />
+            </Paper>
           </div>
         </div>
-        <Paper withBorder p='sm' className={classes.panel}>
-          <div className={classes.lostPieces}>
-            {boardData.pieces
-              .filter(piece => piece.position === null)
-              .map(piece => {
-                return <Piece key={piece.id} piece={piece} />
-              })}
-          </div>
-          {!boardData.endedAt && boardData.startedAt && !!userColor && (
-            <Button color='red' variant='light' onClick={giveUp}>
-              Abandonner
-            </Button>
-          )}
-          <ScrollArea flex={1} mih={0}>
-            <List listStyleType='none' size='sm' spacing={4}>
-              {boardData.history.flatMap((move, index) => {
-                if (index % 2 === 0) {
-                  const blackMove = boardData.history[index + 1]?.move ?? ''
-                  return (
-                    <List.Item key={move.time}>
-                      {index / 2 + 1}. {move.move} {blackMove}
-                    </List.Item>
-                  )
-                }
-                return []
-              })}
-              {boardData.result === 'pat' ? (
-                <List.Item>
-                  <strong>Pat</strong>
-                </List.Item>
-              ) : boardData.result === 'win' ? (
-                <List.Item>
-                  <strong>Victoire de {boardData.winner?.pseudo}</strong>
-                </List.Item>
-              ) : boardData.result === 'giveup' ? (
-                <>
-                  <List.Item>
-                    <em>
-                      Abandon de{' '}
-                      {boardData.players.black?.id === boardData.winner?.id ? boardData.players.white?.pseudo : boardData.players.black?.pseudo}
-                    </em>
-                  </List.Item>
-                  <List.Item>
-                    <strong>Victoire de {boardData.winner?.pseudo}</strong>
-                  </List.Item>
-                </>
-              ) : null}
-            </List>
-          </ScrollArea>
-        </Paper>
         <DragOverlay className={classes.dragOverlay} dropAnimation={dragDatas.withDropAnim ? undefined : null}>
           {dragDatas.active && <Piece piece={dragDatas.active} isOverlay={true} />}
         </DragOverlay>

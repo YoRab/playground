@@ -27,6 +27,13 @@ const roomApi = {
     rooms.push(room)
     return room
   },
+  rename: async (data: { roomId: string; title: string }) => {
+    const roomIndex = rooms.findIndex(item => item.id === data.roomId)
+    if (roomIndex < 0) return null
+
+    rooms[roomIndex] = { ...rooms[roomIndex], title: data.title }
+    return rooms[roomIndex]
+  },
   delete: async (data: { roomId: string }) => {
     rooms = rooms.filter(room => room.id !== data.roomId)
     return true

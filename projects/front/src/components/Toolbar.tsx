@@ -1,9 +1,11 @@
 import useLocalStorage from '@front/hooks/useLocalStorage'
 import { trpc } from '@front/utils/trpc'
-import { Anchor, Button, Group, Image, Text } from '@mantine/core'
-import { IconLogout } from '@tabler/icons-react'
+import { Anchor, Group, Image, Menu, Text, UnstyledButton } from '@mantine/core'
+import { UserAvatar } from '@platform/client'
+import { IconChevronDown, IconLogout } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import ColorSchemeMenu from './ColorSchemeMenu'
+import classes from './Toolbar.module.css'
 
 const Toolbar = () => {
   const { setItem } = useLocalStorage()
@@ -19,33 +21,42 @@ const Toolbar = () => {
     }
   })
 
-  const logout = () => {
-    logoutMutation.mutate()
-  }
-
   return (
     <Group h='100%' px='md' justify='space-between' component='nav' aria-label='main navigation'>
-      <Anchor href='/' underline='never' c='inherit'>
-        <Group gap='xs'>
-          <Image src='./vite.svg' alt='logo' h={28} w='auto' />
-          <Text fw={700} size='lg'>
-            YRP
-          </Text>
+      <Anchor href='#/home' underline='never' c='inherit'>
+        <Group gap={10}>
+          <Image src='./logo.svg' alt='' h={30} w={30} />
+          <Text className={classes.brand}>Playground</Text>
         </Group>
       </Anchor>
 
       <Group gap='sm'>
-        {user ? (
-          <Text size='sm' visibleFrom='xs'>
-            Hello {user.pseudo}
-          </Text>
-        ) : null}
         <ColorSchemeMenu />
-        {user ? (
-          <Button variant='default' leftSection={<IconLogout size={16} />} onClick={logout} loading={logoutMutation.isPending}>
-            Logout
-          </Button>
-        ) : null}
+        {user && (
+          <Menu position='bottom-end' width={200}>
+            <Menu.Target>
+              <UnstyledButton className={classes.user} aria-label='Account'>
+                <Group gap={8} wrap='nowrap'>
+                  <UserAvatar user={{ id: user.id, name: user.pseudo }} size={30} />
+                  <Text size='sm' fw={500} visibleFrom='sm' maw={160} truncate>
+                    {user.pseudo}
+                  </Text>
+                  <IconChevronDown size={14} stroke={1.5} />
+                </Group>
+              </UnstyledButton>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>Signed in as {user.pseudo}</Menu.Label>
+              <Menu.Item
+                leftSection={<IconLogout size={16} stroke={1.5} />}
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+              >
+                Log out
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        )}
       </Group>
     </Group>
   )

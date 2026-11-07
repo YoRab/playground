@@ -1,23 +1,25 @@
 import { confirmDelete } from '@front/utils/confirmDelete'
 import { reportError } from '@front/utils/reportError'
 import { trpc } from '@front/utils/trpc'
-import { Avatar, Badge, Button, Card, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core'
+import { Button, Container, Group, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core'
+import { Loading } from '@platform/client'
 import type { Room } from '@platform/model'
-import { IconArrowRight, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconDoorEnter, IconPlus } from '@tabler/icons-react'
 import { useState } from 'react'
-
-const MAX_AVATARS = 4
+import classes from './Home.module.css'
+import RoomCard from './RoomCard'
 
 const Home = () => {
-  const [rooms, setRooms] = useState<Room[]>([])
+  // null until the first list arrives: no "No room yet" flash
+  const [rooms, setRooms] = useState<Room[] | null>(null)
 
   const userQuery = trpc.public.getMe.useQuery()
   const user = userQuery.data
 
   trpc.public.onGetRooms.useSubscription(undefined, {
-    onData(games) {
-      console.log('received rooms', games)
-      setRooms(games)
+    onData(rooms) {
+      // newest first
+      setRooms([...rooms].sort((a, b) => b.createdAt - a.createdAt))
     },
     onError(err) {
       console.error('Subscription error:', err)
@@ -25,22 +27,13 @@ const Home = () => {
     }
   })
 
-  const addNewGameMutation = trpc.protected.addNewRoom.useMutation({
+  const addNewRoomMutation = trpc.protected.addNewRoom.useMutation({
     onSuccess: data => {
-      console.log('room created', data)
       if (data) window.location.href = `#/room/${data.id}`
     }
   })
 
-  const deleteRoomMutation = trpc.protected.deleteRoom.useMutation({
-    onSuccess: data => {
-      console.log('room deleted', data)
-    }
-  })
-
-  const addNewRoom = () => {
-    addNewGameMutation.mutate()
-  }
+  const deleteRoomMutation = trpc.protected.deleteRoom.useMutation()
 
   const deleteRoom = (room: Room) => {
     confirmDelete(
@@ -52,60 +45,49 @@ const Home = () => {
     )
   }
 
+  const newRoomButton = (
+    <Button leftSection={<IconPlus size={16} />} onClick={() => addNewRoomMutation.mutate()} loading={addNewRoomMutation.isPending}>
+      New room
+    </Button>
+  )
+
   return (
-    <Stack gap='lg'>
-      <Group justify='space-between'>
-        <Title order={2}>Active rooms</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={addNewRoom} loading={addNewGameMutation.isPending}>
-          New
-        </Button>
-      </Group>
+    <Container size='lg' w='100%' p={0}>
+      <Stack gap='lg'>
+        <Group justify='space-between' align='flex-end'>
+          <div>
+            <Title order={2}>Rooms</Title>
+            <Text c='dimmed' size='sm'>
+              Join a room, or open your own and invite your friends.
+            </Text>
+          </div>
+          {rooms?.length ? newRoomButton : null}
+        </Group>
 
-      {rooms.length === 0 ? (
-        <Text c='dimmed' ta='center' py='xl'>
-          No active room yet
-        </Text>
-      ) : (
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
-          {rooms.map(room => (
-            <Card key={room.id} withBorder shadow='sm' padding='lg'>
-              <Stack gap='xs' flex={1}>
-                <Text fw={600} size='lg'>
-                  {room.title}
-                </Text>
-                <Text size='sm' c='dimmed'>
-                  Created on {new Date(room.createdAt).toUTCString()} by {room.owner?.pseudo ?? 'Unknown (çà pue le bug)'}
-                </Text>
-                <Group gap='sm'>
-                  <Badge variant='light'>{room.watchers.length} in the room</Badge>
-                  <Avatar.Group spacing='sm'>
-                    {room.watchers.slice(0, MAX_AVATARS).map(watcher => (
-                      <Tooltip key={watcher.id} label={watcher.pseudo} withArrow>
-                        <Avatar name={watcher.pseudo} color='initials' size='sm' />
-                      </Tooltip>
-                    ))}
-                    {room.watchers.length > MAX_AVATARS && <Avatar size='sm'>+{room.watchers.length - MAX_AVATARS}</Avatar>}
-                  </Avatar.Group>
-                </Group>
-              </Stack>
-
-              <Group justify='space-between' mt='md'>
-                {room.owner?.id === user?.id ? (
-                  <Button color='red' variant='light' leftSection={<IconTrash size={16} />} onClick={() => deleteRoom(room)}>
-                    Delete
-                  </Button>
-                ) : (
-                  <span />
-                )}
-                <Button component='a' href={`#/room/${room.id}`} rightSection={<IconArrowRight size={16} />}>
-                  Join
-                </Button>
-              </Group>
-            </Card>
-          ))}
-        </SimpleGrid>
-      )}
-    </Stack>
+        {rooms === null ? (
+          <Loading />
+        ) : rooms.length === 0 ? (
+          <Stack align='center' gap='xs' py={64} px='md' className={classes.empty}>
+            <ThemeIcon size={56} radius='xl' variant='light'>
+              <IconDoorEnter size={28} stroke={1.5} />
+            </ThemeIcon>
+            <Title order={4} mt='xs'>
+              No room yet
+            </Title>
+            <Text c='dimmed' size='sm' ta='center'>
+              Open one and share its link with your friends.
+            </Text>
+            <Group mt='sm'>{newRoomButton}</Group>
+          </Stack>
+        ) : (
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+            {rooms.map(room => (
+              <RoomCard key={room.id} room={room} user={user} onDelete={deleteRoom} />
+            ))}
+          </SimpleGrid>
+        )}
+      </Stack>
+    </Container>
   )
 }
 

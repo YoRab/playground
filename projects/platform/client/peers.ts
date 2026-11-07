@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import { z } from 'zod'
-
-/** Mantine colors given to the participants, picked from their user id */
-const PEER_COLORS = ['blue', 'red', 'teal', 'grape', 'orange', 'cyan', 'pink', 'lime', 'violet', 'indigo'] as const
-
-const colorOf = (userId: string) => {
-  let hash = 0
-  for (const char of userId) hash = (hash * 31 + char.charCodeAt(0)) | 0
-  return PEER_COLORS[Math.abs(hash) % PEER_COLORS.length]
-}
+import { userColor } from './userColor'
 
 /** CSS value of a participant color */
 export const peerColorVar = (color: string) => `var(--mantine-color-${color}-6)`
@@ -27,7 +19,7 @@ export type Peer<TState = unknown> = TState & {
 const readPeers = <TState>(awareness: Awareness, schema: z.ZodType<{ user: { id: string; name: string } } & TState>): Peer<TState>[] =>
   [...awareness.getStates()].flatMap(([clientId, state]) => {
     const parsed = schema.safeParse(state)
-    return parsed.success ? [{ ...parsed.data, clientId, color: colorOf(parsed.data.user.id) }] : []
+    return parsed.success ? [{ ...parsed.data, clientId, color: userColor(parsed.data.user.id) }] : []
   })
 
 /**

@@ -1,0 +1,6 @@
+/* tinted background: the cards and panels (white or dark-7) stand out on it */
+.main {
+  display: flex;
+  flex-direction: column;
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+}

@@ -6,7 +6,7 @@ const Loading = () => {
     <Center flex={1}>
       <Stack align='center' gap='xs' className={classes.content}>
         <Loader />
-        <Text c='dimmed'>Chargement...</Text>
+        <Text c='dimmed'>Loading…</Text>
       </Stack>
     </Center>
   )

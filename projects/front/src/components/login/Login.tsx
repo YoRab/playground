@@ -1,10 +1,14 @@
+import { clientAppEntries } from '@front/apps'
+import AppInfo from '@front/components/AppInfo'
 import useLocalStorage from '@front/hooks/useLocalStorage'
 import { resetWsClient } from '@front/hooks/useTrpc'
 import { trpc } from '@front/utils/trpc'
-import { Button, Container, Paper, Text, TextInput, Title } from '@mantine/core'
+import { Button, Center, Container, Group, Image, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { getQueryKey } from '@platform/client'
+import { IconArrowRight } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
+import classes from './Login.module.css'
 
 const Login = () => {
   const queryClient = useQueryClient()
@@ -22,8 +26,7 @@ const Login = () => {
     meta: { handlesError: true },
     onSuccess: jwtToken => {
       setItem('jwt_token', jwtToken)
-      const postListKey = getQueryKey(trpc.public.getMe)
-      queryClient.invalidateQueries({ queryKey: postListKey })
+      queryClient.invalidateQueries({ queryKey: getQueryKey(trpc.public.getMe) })
       resetWsClient()
     },
     onError: error => {
@@ -36,21 +39,49 @@ const Login = () => {
   })
 
   return (
-    <Container size={420} my={40} w='100%'>
-      <Title ta='center'>Playground</Title>
-      <Text c='dimmed' size='sm' ta='center' mt={5}>
-        Play chess and other stuff
-      </Text>
+    <Center flex={1}>
+      <Container size='lg' w='100%' py='xl'>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing={48} className={classes.grid}>
+          <Stack gap='lg' className={classes.intro}>
+            <Group gap='md' wrap='nowrap'>
+              <Image src='./logo.svg' alt='' h={56} w={56} />
+              <div>
+                <Title order={1} className={classes.title}>
+                  Playground
+                </Title>
+                <Text c='dimmed'>Real-time mini-apps to play and create together.</Text>
+              </div>
+            </Group>
+            <Stack gap='sm'>
+              {clientAppEntries.map(([type, app]) => (
+                <AppInfo key={type} app={app} size={44} />
+              ))}
+            </Stack>
+          </Stack>
 
-      <Paper withBorder shadow='sm' p={22} mt={30} radius='md'>
-        <form onSubmit={submit}>
-          <TextInput label='Nickname' placeholder='Choose a nickname' data-autofocus key={form.key('pseudo')} {...form.getInputProps('pseudo')} />
-          <Button type='submit' fullWidth mt='xl' loading={login.isPending}>
-            Start
-          </Button>
-        </form>
-      </Paper>
-    </Container>
+          <Paper withBorder shadow='md' p='xl' radius='lg' className={classes.form}>
+            <form onSubmit={submit}>
+              <Title order={3}>Pick a nickname</Title>
+              <Text c='dimmed' size='sm' mt={4}>
+                No account, no password: a nickname is all it takes.
+              </Text>
+              <TextInput
+                mt='lg'
+                size='md'
+                label='Nickname'
+                placeholder='e.g. Ada'
+                autoFocus
+                key={form.key('pseudo')}
+                {...form.getInputProps('pseudo')}
+              />
+              <Button type='submit' fullWidth size='md' mt='lg' rightSection={<IconArrowRight size={18} />} loading={login.isPending}>
+                Start playing
+              </Button>
+            </form>
+          </Paper>
+        </SimpleGrid>
+      </Container>
+    </Center>
   )
 }
 

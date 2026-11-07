@@ -1,26 +1,91 @@
 .chessBoard {
+  --strip-height: 44px;
+  --play-gap: 8px;
+  --panel-width: 260px;
+  --layout-gap: var(--mantine-spacing-md);
+  /* the two player strips above and below the board */
+  --strips: calc(2 * (var(--strip-height) + var(--play-gap)));
+
   flex: 1;
   display: flex;
-  justify-content: center;
   min-height: 0;
-  gap: 16px;
-  padding: 16px;
-  box-sizing: border-box;
 }
 
-/* positioned: the in-board overlays (game mode, promotion) cover it */
-.container {
-  position: relative;
-  max-width: 800px;
-  width: 100%;
-  min-height: 0;
+/*
+ * A size container: the board takes the largest square that fits the width left by the panel and the height left by
+ * the two player strips, so it never overflows the room. The board and the panel are centered together.
+ * Its height comes from the stretch of a flex row: as the grown item of a flex column, its cqh would be 0.
+ */
+.play {
+  flex: 1;
+  min-width: 0;
+  container-type: size;
+}
+
+.layout {
+  /* resolved where it is used (.column, .panel): the cq units refer to .play */
+  --board: min(100cqw - var(--panel-width) - var(--layout-gap), 100cqh - var(--strips), 800px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--layout-gap);
+  height: 100%;
+}
+
+/* the board between its two player strips */
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--play-gap);
+  width: var(--board);
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-xs);
+  height: var(--strip-height);
+  padding: 0 var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+
+  &[data-active] {
+    border-color: var(--mantine-primary-color-filled);
+    box-shadow: 0 0 0 3px var(--mantine-primary-color-light);
+  }
+}
+
+/* the king of the player's color */
+.colorPiece {
+  flex: none;
+  display: flex;
+  width: 22px;
+  pointer-events: none;
+}
+
+.captured {
+  display: flex;
+  pointer-events: none;
+  user-select: none;
+
+  & > img {
+    width: 20px;
+    margin-left: -4px;
+  }
 }
 
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-xs);
-  width: min(250px, 20vw);
+  gap: var(--mantine-spacing-sm);
+  width: var(--panel-width);
+  height: calc(var(--board) + var(--strips));
   min-height: 0;
 }
 
@@ -28,12 +93,15 @@
   cursor: grabbing;
 }
 
+/* positioned: the in-board overlays (game mode, promotion) cover it */
 .board {
+  position: relative;
   width: 100%;
   background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-5));
   padding: 8px;
   box-sizing: border-box;
   border-radius: var(--mantine-radius-md);
+  box-shadow: var(--mantine-shadow-sm);
   display: flex;
   flex-direction: column;
 }
@@ -42,22 +110,34 @@
   display: flex;
 }
 
-.container[data-black] .row {
-  flex-direction: row-reverse;
-}
-
-.container[data-black] .board {
+.board[data-black] {
   flex-direction: column-reverse;
 }
 
-.lostPieces {
-  display: inline-block;
-  pointer-events: none;
-  touch-action: none;
-  user-select: none;
-  min-height: 0;
+.board[data-black] .row {
+  flex-direction: row-reverse;
 }
 
-.lostPieces > img {
-  width: 36px;
+/* phone (below the Mantine sm breakpoint, 48em): the panel goes under the board, which takes the whole width; the page scrolls */
+@media (max-width: 47.99em) {
+  .chessBoard {
+    flex: none;
+  }
+
+  .play {
+    container-type: inline-size;
+  }
+
+  .layout {
+    --board: 100cqw;
+
+    flex-direction: column;
+    height: auto;
+  }
+
+  .panel {
+    width: 100%;
+    height: auto;
+    max-height: 280px;
+  }
 }

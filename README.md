@@ -54,8 +54,17 @@ Dependency graph: `platform` ← `apps/*` ← `back` (the `server/` entries) and
    `defineYDocApp` is enough when a board is a shared document: it generates the board lifecycle and the Yjs sync procedures (concurrent edits merge). The client side comes with it: `useYDoc`, `usePeers` and `PresenceBar` from `@platform/client` (see `apps/word/client`). For custom logic, use `defineServerApp({ type, create, remove, router })` with `createTopic` / `liveQuery` (see `apps/chess/server`).
 3. **Client** – `client/trpc.ts` (`createTRPCReact<NotesApi>()` from `@platform/client`), a component receiving `AppProps` (`{ user, room, boardId }`), and `client/index.ts`:
    ```ts
-   export default defineClientApp({ label: 'Notes', Component: lazy(() => import('./Notes')) })
+   import icon from './assets/notes.svg'
+
+   export default defineClientApp({
+     label: 'Notes',
+     description: 'Shared sticky notes for the whole room',
+     icon, // shown in an <img>: write its colors in the SVG, currentColor does not follow the color scheme
+     color: 'yellow', // Mantine color: tint of the icon, hover of its tile in the board picker
+     Component: lazy(() => import('./Notes'))
+   })
    ```
+   The label, icon and description appear in the board picker, the tabs of the room, the room cards of the home page and the login page. For avatars, use `UserAvatars` and `userColor` from `@platform/client`: a user keeps the same color everywhere.
 4. **Register** it: one line in [projects/back/src/apps.ts](projects/back/src/apps.ts) and one in [projects/front/src/apps.ts](projects/front/src/apps.ts). The build fails if an app is registered on the server and not on the client.
 5. `pnpm install` to link the new package.
 

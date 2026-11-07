@@ -1,74 +1,63 @@
 import type { AppType } from '@back/apps'
-import { clientAppEntries, findClientApp } from '@front/apps'
+import { findClientApp } from '@front/apps'
 import { confirmDelete } from '@front/utils/confirmDelete'
 import { getPathParams } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
-import { Button, Center, Group, Image, Modal, SimpleGrid, Stack, Text, Title, UnstyledButton } from '@mantine/core'
+import { Button, Center, Modal, Stack, Text } from '@mantine/core'
 import { ErrorAlert, Loading } from '@platform/client'
 import type { Room, User } from '@platform/model'
-import { IconApps, IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react'
-import { Suspense, useState } from 'react'
-import classes from './Room.module.css'
+import { IconArrowLeft } from '@tabler/icons-react'
+import { Suspense, useEffect, useState } from 'react'
+import AppPicker from './AppPicker'
+import BoardTabs, { type OwnerActions } from './BoardTabs'
+import RoomHeader from './RoomHeader'
+import RoomOverview from './RoomOverview'
 
 const RoomInner = ({ user, room }: { user: User; room: Room }) => {
-  const [showNewGame, setShowNewGame] = useState(false)
   const isOwner = user.id === room.owner?.id
-  const [activeTabIndex, setActiveTabIndex] = useState(room.boards.length)
-
-  const activeBoard = activeTabIndex > 0 ? room.boards[activeTabIndex - 1] : undefined
+  const [showPicker, setShowPicker] = useState(false)
+  // the board asked by the URL (#/room/<roomId>/<boardId>); the overview when there is none, or when it is missing or deleted
+  const [selectedId, setSelectedId] = useState<string | undefined>(() => getPathParams()[1])
+  const activeBoard = room.boards.find(board => board.id === selectedId)
+  const activeBoardId = activeBoard?.id
   const ActiveApp = activeBoard && findClientApp(activeBoard.type)?.Component
-  const addNewBoardMutation = trpc.protected.addBoard.useMutation({
+
+  // the URL follows the active board: a reload or a shared link opens it. replaceState: no history entry per tab, and the router does not react
+  useEffect(() => {
+    const hash = activeBoardId ? `#/room/${room.id}/${activeBoardId}` : `#/room/${room.id}`
+    if (window.location.hash !== hash) window.history.replaceState(null, '', hash)
+  }, [room.id, activeBoardId])
+
+  const addBoardMutation = trpc.protected.addBoard.useMutation({
     onSuccess: data => {
-      console.log('board created', data)
-      if (data) {
-        setActiveTabIndex(data.boards.length)
-      }
+      const newBoard = data ? data.boards.at(-1) : undefined
+      if (newBoard) setSelectedId(newBoard.id)
     }
   })
 
-  const deleteBoardMutation = trpc.protected.deleteBoard.useMutation({
-    onSuccess: data => {
-      console.log('board deleted', data)
-    }
-  })
+  const deleteBoardMutation = trpc.protected.deleteBoard.useMutation()
 
-  const newBoard = (type: AppType) => {
-    setShowNewGame(false)
-    addNewBoardMutation.mutate({
-      type,
-      roomId: room.id
-    })
+  const addBoard = (type: AppType) => {
+    setShowPicker(false)
+    addBoardMutation.mutate({ type, roomId: room.id })
   }
 
   const deleteBoard = (boardId: string) => {
-    confirmDelete('Delete board', 'Delete this board for everyone in the room?', () =>
-      deleteBoardMutation.mutate({
-        roomId: room.id,
-        boardId
-      })
-    )
+    confirmDelete('Delete board', 'Delete this board for everyone in the room?', () => deleteBoardMutation.mutate({ roomId: room.id, boardId }))
   }
 
+  const owner: OwnerActions | undefined = isOwner
+    ? { onAdd: () => setShowPicker(true), onPick: addBoard, onDelete: deleteBoard, adding: addBoardMutation.isPending }
+    : undefined
+
   return (
-    <Stack flex={1} mih={0} gap='sm'>
-      {activeBoard && isOwner && (
-        <Group justify='flex-end'>
-          <Button color='red' variant='light' leftSection={<IconTrash size={16} />} onClick={() => deleteBoard(activeBoard.id)}>
-            Delete board
-          </Button>
-        </Group>
-      )}
+    <Stack flex={1} mih={0} gap='md'>
+      <RoomHeader room={room} user={user} />
+
+      <BoardTabs boards={room.boards} active={activeBoardId} onSelect={setSelectedId} owner={owner} />
 
       {!activeBoard ? (
-        <Center flex={1}>
-          {isOwner ? (
-            <Button size='md' leftSection={<IconPlus size={18} />} onClick={() => setShowNewGame(true)} loading={addNewBoardMutation.isPending}>
-              New board
-            </Button>
-          ) : (
-            <Text c='dimmed'>Waiting for {room.owner?.pseudo ?? ''}</Text>
-          )}
-        </Center>
+        <RoomOverview room={room} user={user} onOpen={setSelectedId} owner={owner} />
       ) : ActiveApp ? (
         <Suspense fallback={<Loading />}>
           <ActiveApp key={activeBoard.id} user={user} room={room} boardId={activeBoard.id} />
@@ -79,17 +68,8 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
         </Center>
       )}
 
-      <Modal opened={showNewGame} onClose={() => setShowNewGame(false)} title='Create a new board' size='lg'>
-        <SimpleGrid cols={{ base: 2, sm: 3 }}>
-          {clientAppEntries.map(([type, app]) => (
-            <UnstyledButton key={type} className={classes.tile} onClick={() => newBoard(type)}>
-              {app.icon ? <Image src={app.icon} alt='' h={48} w='auto' /> : <IconApps size={48} stroke={1.5} />}
-              <Text size='sm' fw={500}>
-                {app.label}
-              </Text>
-            </UnstyledButton>
-          ))}
-        </SimpleGrid>
+      <Modal opened={showPicker} onClose={() => setShowPicker(false)} title='Add a board' size='lg'>
+        <AppPicker onPick={addBoard} />
       </Modal>
     </Stack>
   )
@@ -108,7 +88,6 @@ const RoomComponent = () => {
     { roomId },
     {
       onData(data) {
-        console.log('received dataaaa !')
         setRoom(data)
       },
       onError(err) {
@@ -118,17 +97,17 @@ const RoomComponent = () => {
     }
   )
 
-  return (
-    <Stack flex={1} mih={0} gap='sm'>
-      <Group gap='sm'>
-        <Button component='a' href='#/home' variant='subtle' leftSection={<IconArrowLeft size={16} />}>
-          Back to Home
+  if (error) {
+    return (
+      <Stack gap='md'>
+        <Button component='a' href='#/home' variant='subtle' leftSection={<IconArrowLeft size={16} />} w='fit-content'>
+          All rooms
         </Button>
-        <Title order={3}>{room?.title}</Title>
-      </Group>
-      {error ? <ErrorAlert title='Room unavailable'>{error}</ErrorAlert> : room ? <RoomInner user={user!} room={room} /> : <Loading />}
-    </Stack>
-  )
+        <ErrorAlert title='Room unavailable'>{error}</ErrorAlert>
+      </Stack>
+    )
+  }
+  return room && user ? <RoomInner user={user} room={room} /> : <Loading />
 }
 
 export default RoomComponent

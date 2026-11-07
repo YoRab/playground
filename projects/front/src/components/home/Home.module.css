@@ -1,0 +1,65 @@
+.card {
+  position: relative;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+
+  &:hover {
+    border-color: var(--mantine-primary-color-filled);
+    box-shadow: var(--mantine-shadow-md);
+    transform: translateY(-2px);
+  }
+
+  &:has(.link:focus-visible) {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+  }
+}
+
+/* the title: its ::after stretches the link over the whole card */
+.link {
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+}
+
+/* above the stretched link: keeps its own clicks and tooltips */
+.above {
+  position: relative;
+  z-index: 1;
+}
+
+.footer {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.onlineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mantine-color-green-6);
+  box-shadow: 0 0 0 3px light-dark(var(--mantine-color-green-1), rgb(64 192 87 / 20%));
+}
+
+.join {
+  color: var(--mantine-color-dimmed);
+  transition: color 150ms ease;
+
+  .card:hover & {
+    color: var(--mantine-primary-color-filled);
+  }
+}
+
+.empty {
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-lg);
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+}

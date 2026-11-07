@@ -1,26 +1,93 @@
-/* tile of the "Create a new board" grid, adapted from the ActionsGrid block of Mantine UI */
+/* an app of the board picker (modal and empty room): its color shows on hover */
 .tile {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--mantine-spacing-xs);
-  height: 120px;
+  gap: var(--mantine-spacing-md);
   padding: var(--mantine-spacing-md);
-  text-align: center;
+  text-align: left;
   border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-md);
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
   transition:
-    box-shadow 150ms ease,
-    transform 100ms ease,
     border-color 150ms ease,
-    color 150ms ease;
+    box-shadow 150ms ease,
+    transform 150ms ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--tile-color);
+    box-shadow: var(--mantine-shadow-md);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tile-color);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* the tabs and the owner's buttons on one line: the line draws the bottom border, the buttons stay out of the tablist */
+.tabsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.tabs {
+  min-width: 0;
+}
+
+.tabsList {
+  &::before {
+    display: none;
+  }
+}
+
+.tab {
+  font-weight: 500;
+
+  &[data-active] {
+    color: var(--mantine-color-bright);
+  }
+}
+
+.deleteBoard {
+  margin-left: auto;
+}
+
+/* a board of the overview */
+.boardCard {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 
   &:hover {
     border-color: var(--mantine-primary-color-filled);
-    color: var(--mantine-primary-color-filled);
     box-shadow: var(--mantine-shadow-md);
-    transform: scale(1.03);
+  }
+}
+
+/* the owner's "Add a board" tile, next to the boards of the overview */
+.addCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-xs);
+  min-height: 112px;
+  color: var(--mantine-color-dimmed);
+  border: 2px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-lg);
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover:not(:disabled) {
+    color: var(--mantine-primary-color-filled);
+    border-color: var(--mantine-primary-color-filled);
   }
 }

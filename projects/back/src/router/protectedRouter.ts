@@ -21,6 +21,15 @@ const protectedRouter = router({
     return newRoom
   }),
 
+  renameRoom: protectedProcedure.input(z.object({ roomId: z.string(), title: z.string().trim().min(1).max(60) })).mutation(async ({ ctx, input }) => {
+    const hasBeenRenamed = await roomRepo.renameRoom(input.roomId, input.title, ctx.user.id)
+    if (hasBeenRenamed) {
+      notifyRooms()
+      roomTopic.publish(input.roomId)
+    }
+    return hasBeenRenamed
+  }),
+
   deleteRoom: protectedProcedure.input(z.object({ room: z.string() })).mutation(async ({ ctx, input }) => {
     const hasBeenDeleted = await roomRepo.deleteRoom(input.room, ctx.user.id)
     if (hasBeenDeleted) {

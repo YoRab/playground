@@ -9,9 +9,10 @@ const Editor = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; use
   const { text, textareaProps } = useYTextarea(board)
 
   return (
-    <Stack gap='sm'>
+    // a centered sheet: lines stay readable on a wide screen
+    <Stack gap='sm' w='100%' maw={860} mx='auto'>
       <PresenceBar awareness={board.awareness} userId={userId} unsent={unsent} />
-      <Paper withBorder p='md'>
+      <Paper withBorder shadow='xs' p={{ base: 'md', sm: 'xl' }}>
         <div className={classes.editor}>
           <textarea {...textareaProps} className={`${classes.surface} ${classes.input}`} aria-label='Text of the board' spellCheck />
           <RemoteCursors doc={board.doc} awareness={board.awareness} text={text} />

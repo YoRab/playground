@@ -1,0 +1,21 @@
+.grid {
+  align-items: center;
+}
+
+.title {
+  font-size: 2.4rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* on a phone, the form comes first: the presentation of the apps follows */
+/* below the Mantine md breakpoint (62em), where SimpleGrid shows one column */
+@media (max-width: 61.99em) {
+  .intro {
+    order: 2;
+  }
+
+  .form {
+    order: 1;
+  }
+}

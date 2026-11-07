@@ -28,6 +28,14 @@ export const createRoom = async (ownerId: string): Promise<Room | undefined> => 
   return toRoom(room)
 }
 
+export const renameRoom = async (roomId: string, title: string, ownerId: string): Promise<boolean> => {
+  const room = await roomApi.findById(roomId)
+  if (!room) return false
+  if (room.owner !== ownerId) return false
+
+  return !!(await roomApi.rename({ roomId, title }))
+}
+
 export const deleteRoom = async (roomId: string, ownerId: string): Promise<boolean> => {
   const room = await roomApi.findById(roomId)
   if (!room) return false
