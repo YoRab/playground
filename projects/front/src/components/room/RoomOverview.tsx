@@ -5,7 +5,7 @@ import { boardLabels } from '@front/utils/boardLabels'
 import { ActionIcon, Badge, Button, Card, Center, Group, Loader, SimpleGrid, Stack, Text, Title, Tooltip, UnstyledButton } from '@mantine/core'
 import { UserAvatar } from '@platform/client'
 import type { Board, Room, User } from '@platform/model'
-import { IconArrowRight, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconArrowRight, IconPlus, IconTrash, IconUserX } from '@tabler/icons-react'
 import AppPicker from './AppPicker'
 import type { OwnerActions } from './BoardTabs'
 import classes from './Room.module.css'
@@ -16,6 +16,8 @@ type RoomOverviewProps = {
   onOpen: (boardId: string) => void
   /** Given to the owner only */
   owner?: OwnerActions | undefined
+  /** Kicks a participant out of the room (owner only) */
+  onKick?: ((user: User) => void) | undefined
 }
 
 /** A room without a board: the owner picks the first app, the others wait for them */
@@ -62,7 +64,7 @@ const BoardCard = ({ board, label, onOpen, onDelete }: { board: Board; label: st
 }
 
 /** The main tab of a room: its boards at a glance and who is here */
-const RoomOverview = ({ room, user, onOpen, owner }: RoomOverviewProps) => {
+const RoomOverview = ({ room, user, onOpen, owner, onKick }: RoomOverviewProps) => {
   const labels = boardLabels(room.boards)
 
   return (
@@ -111,6 +113,13 @@ const RoomOverview = ({ room, user, onOpen, owner }: RoomOverviewProps) => {
                   <Badge size='sm' variant='default'>
                     Owner
                   </Badge>
+                )}
+                {onKick && watcher.id !== room.owner?.id && (
+                  <Tooltip label={`Kick ${watcher.pseudo} out`}>
+                    <ActionIcon variant='subtle' color='red' size='sm' aria-label={`Kick ${watcher.pseudo} out`} onClick={() => onKick(watcher)}>
+                      <IconUserX size={14} />
+                    </ActionIcon>
+                  </Tooltip>
                 )}
               </Group>
             ))}

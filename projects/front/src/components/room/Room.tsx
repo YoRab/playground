@@ -5,12 +5,13 @@ import { getPathParams } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
 import { Button, Center, Modal, Stack, Text } from '@mantine/core'
 import { ErrorAlert, Loading } from '@platform/client'
-import type { Room, User } from '@platform/model'
+import type { Room, RoomView, User } from '@platform/model'
 import { IconArrowLeft } from '@tabler/icons-react'
 import { Suspense, useEffect, useState } from 'react'
 import AppPicker from './AppPicker'
 import BoardTabs, { type OwnerActions } from './BoardTabs'
 import RoomHeader from './RoomHeader'
+import RoomLocked from './RoomLocked'
 import RoomOverview from './RoomOverview'
 
 const RoomInner = ({ user, room }: { user: User; room: Room }) => {
@@ -36,6 +37,7 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
   })
 
   const deleteBoardMutation = trpc.protected.deleteBoard.useMutation()
+  const kickMutation = trpc.protected.kickUser.useMutation()
 
   const addBoard = (type: AppType) => {
     setShowPicker(false)
@@ -44,6 +46,17 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
 
   const deleteBoard = (boardId: string) => {
     confirmDelete('Delete board', 'Delete this board for everyone in the room?', () => deleteBoardMutation.mutate({ roomId: room.id, boardId }))
+  }
+
+  const kick = (target: User) => {
+    confirmDelete(
+      'Kick out',
+      <Text size='sm'>
+        Kick <strong>{target.pseudo}</strong> out of the room? They won't be able to come back until you let them in from the room settings.
+      </Text>,
+      () => kickMutation.mutate({ roomId: room.id, userId: target.id }),
+      'Kick out'
+    )
   }
 
   const owner: OwnerActions | undefined = isOwner
@@ -57,7 +70,7 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
       <BoardTabs boards={room.boards} active={activeBoardId} onSelect={setSelectedId} owner={owner} />
 
       {!activeBoard ? (
-        <RoomOverview room={room} user={user} onOpen={setSelectedId} owner={owner} />
+        <RoomOverview room={room} user={user} onOpen={setSelectedId} owner={owner} onKick={isOwner ? kick : undefined} />
       ) : ActiveApp ? (
         <Suspense fallback={<Loading />}>
           <ActiveApp key={activeBoard.id} user={user} room={room} boardId={activeBoard.id} />
@@ -76,7 +89,8 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
 }
 
 const RoomComponent = () => {
-  const [room, setRoom] = useState<Room>()
+  // the room once in it, or why the user is kept out: it changes live (password accepted, spot freed, kicked out…)
+  const [view, setView] = useState<RoomView>()
   const [error, setError] = useState<string | undefined>()
 
   const userQuery = trpc.public.getMe.useQuery()
@@ -88,7 +102,7 @@ const RoomComponent = () => {
     { roomId },
     {
       onData(data) {
-        setRoom(data)
+        setView(data)
       },
       onError(err) {
         console.error('Subscription error:', err)
@@ -107,7 +121,9 @@ const RoomComponent = () => {
       </Stack>
     )
   }
-  return room && user ? <RoomInner user={user} room={room} /> : <Loading />
+  if (!view || !user) return <Loading />
+  // locked: the room and its boards are unmounted (a kicked out user leaves them right away)
+  return view.status === 'joined' ? <RoomInner user={user} room={view.room} /> : <RoomLocked room={view.room} reason={view.reason} />
 }
 
 export default RoomComponent

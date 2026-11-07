@@ -1,9 +1,10 @@
+import RoomSettingsForm from '@front/components/room/RoomSettingsForm'
 import { confirmDelete } from '@front/utils/confirmDelete'
 import { reportError } from '@front/utils/reportError'
 import { trpc } from '@front/utils/trpc'
-import { Button, Container, Group, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core'
+import { Button, Container, Group, Modal, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core'
 import { Loading } from '@platform/client'
-import type { Room } from '@platform/model'
+import { ROOM_LIMITS, type Room } from '@platform/model'
 import { IconDoorEnter, IconPlus } from '@tabler/icons-react'
 import { useState } from 'react'
 import classes from './Home.module.css'
@@ -27,8 +28,11 @@ const Home = () => {
     }
   })
 
+  // the settings of the new room are asked first
+  const [creating, setCreating] = useState(false)
   const addNewRoomMutation = trpc.protected.addNewRoom.useMutation({
     onSuccess: data => {
+      setCreating(false)
       if (data) window.location.href = `#/room/${data.id}`
     }
   })
@@ -46,7 +50,7 @@ const Home = () => {
   }
 
   const newRoomButton = (
-    <Button leftSection={<IconPlus size={16} />} onClick={() => addNewRoomMutation.mutate()} loading={addNewRoomMutation.isPending}>
+    <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
       New room
     </Button>
   )
@@ -87,6 +91,15 @@ const Home = () => {
           </SimpleGrid>
         )}
       </Stack>
+
+      <Modal opened={creating} onClose={() => setCreating(false)} title='New room' size='lg'>
+        <RoomSettingsForm
+          initialValues={{ title: user ? `${user.pseudo}'s room` : '', visibility: 'public', maxParticipants: ROOM_LIMITS.defaultParticipants }}
+          submitLabel='Create room'
+          loading={addNewRoomMutation.isPending}
+          onSubmit={values => addNewRoomMutation.mutate(values)}
+        />
+      </Modal>
     </Container>
   )
 }

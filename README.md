@@ -4,7 +4,7 @@ A sandbox for real-time multiplayer mini-apps (chess with AI, paint, word…). A
 
 ## 🎮 Features
 
-- **Rooms**: create a room, invite people, add boards (one board = one app instance)
+- **Rooms**: create a room, invite people, add boards (one board = one app instance). The owner sets the name, the max number of participants and who can join: anyone (public), whoever knows the password (protected) or nobody else (private). They can change these settings at any time and kick out a participant, who stays banned until let back in
 - **Chess**: moves validated by the server, play against a human or an external AI client
 - **Paint**: shared drawing synced with Yjs (shapes drawn at the same time merge, pointers of the others shown)
 - **Word**: shared text synced with Yjs (concurrent edits merge, remote cursors shown)
@@ -51,7 +51,7 @@ Dependency graph: `platform` ← `apps/*` ← `back` (the `server/` entries) and
    export default notes
    export type NotesApi = AppApi<typeof notes>
    ```
-   `defineYDocApp` is enough when a board is a shared document: it generates the board lifecycle and the Yjs sync procedures (concurrent edits merge). The client side comes with it: `useYDoc`, `usePeers` and `PresenceBar` from `@platform/client` (see `apps/word/client`). For custom logic, use `defineServerApp({ type, create, remove, router })` with `createTopic` / `liveQuery` (see `apps/chess/server`).
+   `defineYDocApp` is enough when a board is a shared document: it generates the board lifecycle and the Yjs sync procedures (concurrent edits merge). The client side comes with it: `useYDoc`, `usePeers` and `PresenceBar` from `@platform/client` (see `apps/word/client`). For custom logic, use `defineServerApp({ type, create, remove, router })` with `createTopic` / `liveQuery` (see `apps/chess/server`), and write the procedures of a board with `boardProcedure`: it adds `boardId` to the input and refuses the users who have no access to the board's room (private, password, kicked out).
 3. **Client** – `client/trpc.ts` (`createTRPCReact<NotesApi>()` from `@platform/client`), a component receiving `AppProps` (`{ user, room, boardId }`), and `client/index.ts`:
    ```ts
    import icon from './assets/notes.svg'
@@ -140,7 +140,7 @@ The JWT secret is read from `projects/back/src/constants/jwt.ts` (git-ignored): 
 
 The tRPC router of the backend is made of:
 - `public`: login, current user, live list of rooms
-- `protected`: rooms (create, delete, watch with presence) and boards (add/remove, delegated to the app registry)
+- `protected`: rooms (create with settings, update settings, join with a password, kick out / let back in, delete, watch with presence and access rules) and boards (add/remove, delegated to the app registry)
 - one namespace per app (`chess`, `paint`, `word`)
 - the namespaces of the external clients declared by the apps (`chessAI` for the chess AIs, authenticated by an API key: `apiKey` + `name` in the WebSocket connection params). They are served but not part of the type of the shell client
 

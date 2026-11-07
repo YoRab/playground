@@ -1,13 +1,24 @@
 import { randomUUID } from 'node:crypto'
-import type { Board, User } from '@platform/model'
+import type { Board, RoomVisibility, User } from '@platform/model'
 
 export type DBRoom = {
   id: string
   owner: string
   title: string
+  visibility: RoomVisibility
+  maxParticipants: number
+  /** `salt:hash` (scrypt), only for a protected room */
+  passwordHash: string | null
+  /** Users admitted with the password (protected room) */
+  members: string[]
+  /** Users kicked out by the owner */
+  banned: string[]
   createdAt: number
   boards: Board[]
 }
+
+/** What the owner can change after the creation */
+export type DBRoomPatch = Partial<Pick<DBRoom, 'title' | 'visibility' | 'maxParticipants' | 'passwordHash' | 'members' | 'banned'>>
 
 let rooms: DBRoom[] = []
 
@@ -16,22 +27,29 @@ const roomApi = {
 
   findById: async (id: string) => rooms.find(room => room.id === id),
 
-  create: async (data: { owner: User }) => {
+  findByBoardId: async (boardId: string) => rooms.find(room => room.boards.some(board => board.id === boardId)),
+
+  create: async (data: { owner: User; title: string; visibility: RoomVisibility; maxParticipants: number; passwordHash: string | null }) => {
     const room: DBRoom = {
       id: randomUUID(),
       owner: data.owner.id,
-      title: `${data.owner.pseudo}'s room`,
+      title: data.title,
+      visibility: data.visibility,
+      maxParticipants: data.maxParticipants,
+      passwordHash: data.passwordHash,
+      members: [],
+      banned: [],
       createdAt: Date.now(),
       boards: []
     }
     rooms.push(room)
     return room
   },
-  rename: async (data: { roomId: string; title: string }) => {
-    const roomIndex = rooms.findIndex(item => item.id === data.roomId)
+  update: async (roomId: string, patch: DBRoomPatch) => {
+    const roomIndex = rooms.findIndex(item => item.id === roomId)
     if (roomIndex < 0) return null
 
-    rooms[roomIndex] = { ...rooms[roomIndex], title: data.title }
+    rooms[roomIndex] = { ...rooms[roomIndex], ...patch }
     return rooms[roomIndex]
   },
   delete: async (data: { roomId: string }) => {

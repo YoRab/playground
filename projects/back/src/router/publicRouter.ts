@@ -1,5 +1,5 @@
 import * as authRepo from '@back/repository/auth'
-import { findMany as findRooms } from '@back/repository/room'
+import { findRoomsFor } from '@back/repository/room'
 import * as userRepo from '@back/repository/user'
 import { ROOMS_KEY, roomsTopic } from '@back/services/rooms'
 import { liveQuery, publicProcedure, router } from '@platform/server'
@@ -16,7 +16,10 @@ const publicRouter = router({
   login: publicProcedure.input(z.object({ pseudo: z.string() })).mutation(async opts => {
     return await authRepo.login(opts.input)
   }),
-  onGetRooms: publicProcedure.subscription(({ signal }) => liveQuery({ topic: roomsTopic, key: ROOMS_KEY, fetch: findRooms, signal }))
+  // the private rooms of the others are left out: each subscriber gets its own list
+  onGetRooms: publicProcedure.subscription(({ ctx, signal }) =>
+    liveQuery({ topic: roomsTopic, key: ROOMS_KEY, fetch: () => findRoomsFor(ctx.user?.id), signal })
+  )
 })
 
 export default publicRouter

@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { createBoardStore } from './boardStore'
 import { defineServerApp } from './defineApp'
 import { createTopic } from './realtime'
-import { protectedProcedure, TRPCError } from './trpc'
+import { boardProcedure, TRPCError } from './trpc'
 
 /** A change relayed to every client of a board. Binary Yjs payloads travel base64 encoded: tRPC speaks JSON. */
 export type YDocChange = { kind: 'update' | 'awareness'; update: string }
@@ -14,7 +14,7 @@ export type YDocChange = { kind: 'update' | 'awareness'; update: string }
 export type YDocSnapshot = { kind: 'sync'; update: string; stateVector: string; awareness: string }
 
 /** Argument of the awareness `update` event: the ids of the clients whose state changed */
-export type AwarenessChanges ={ added: number[]; updated: number[]; removed: number[] }
+export type AwarenessChanges = { added: number[]; updated: number[]; removed: number[] }
 
 const MAX_AWARENESS_SIZE = 10_000
 
@@ -39,9 +39,9 @@ export const defineYDocApp = <const TType extends string>({
    */
   maxUpdateSize?: number
 }) => {
-  const updateInput = z.object({ boardId: z.string(), update: z.string().max(maxUpdateSize) })
+  const updateInput = z.object({ update: z.string().max(maxUpdateSize) })
   // an awareness state is a few hundred bytes: no need to accept as much as a document update
-  const awarenessInput = z.object({ boardId: z.string(), update: z.string().max(MAX_AWARENESS_SIZE) })
+  const awarenessInput = z.object({ update: z.string().max(MAX_AWARENESS_SIZE) })
   const store = createBoardStore(() => {
     const doc = new Y.Doc()
     const awareness = new Awareness(doc)
@@ -92,7 +92,7 @@ export const defineYDocApp = <const TType extends string>({
       return store.remove(boardId)
     },
     router: {
-      sync: protectedProcedure.input(z.object({ boardId: z.string(), clientId: z.number().int() })).subscription(async function* ({
+      sync: boardProcedure.input(z.object({ clientId: z.number().int() })).subscription(async function* ({
         input,
         signal
       }): AsyncGenerator<YDocSnapshot | YDocChange> {
@@ -120,14 +120,14 @@ export const defineYDocApp = <const TType extends string>({
         }
       }),
 
-      push: protectedProcedure.input(updateInput).mutation(({ input }) => {
+      push: boardProcedure.input(updateInput).mutation(({ input }) => {
         const { doc } = findBoard(input.boardId)
         applyOrReject(() => Y.applyUpdate(doc, fromBase64(input.update)))
         // what the server now holds: the client sends its next changes relative to it
         return toBase64(Y.encodeStateVector(doc))
       }),
 
-      pushAwareness: protectedProcedure.input(awarenessInput).mutation(({ input }) => {
+      pushAwareness: boardProcedure.input(awarenessInput).mutation(({ input }) => {
         const { awareness } = findBoard(input.boardId)
         applyOrReject(() => applyAwarenessUpdate(awareness, fromBase64(input.update), 'client'))
       })

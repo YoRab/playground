@@ -1,6 +1,7 @@
 import { findClientApp } from '@front/apps'
 import AppIcon from '@front/components/AppIcon'
 import RelativeTime from '@front/components/RelativeTime'
+import VisibilityBadge from '@front/components/room/VisibilityBadge'
 import { countByType } from '@front/utils/countByType'
 import { ActionIcon, Badge, Card, Group, Text, Tooltip } from '@mantine/core'
 import { UserAvatar, UserAvatars } from '@platform/client'
@@ -41,15 +42,21 @@ const BoardBadges = ({ room }: { room: Room }) => {
 const RoomCard = ({ room, user, onDelete }: RoomCardProps) => {
   const isOwner = !!user && room.owner?.id === user.id
   const online = room.watchers.length
+  // a private room is the owner's alone: no limit to show
+  const limited = room.visibility !== 'private'
+  const isFull = limited && online >= room.maxParticipants
 
   return (
     <Card className={classes.card} shadow='xs'>
       <Group justify='space-between' align='flex-start' wrap='nowrap' gap='xs'>
-        <a href={`#/room/${room.id}`} className={classes.link}>
-          <Text fw={600} size='lg' lineClamp={1}>
-            {room.title}
-          </Text>
-        </a>
+        <Group gap={6} wrap='nowrap' miw={0}>
+          <a href={`#/room/${room.id}`} className={classes.link}>
+            <Text fw={600} size='lg' lineClamp={1}>
+              {room.title}
+            </Text>
+          </a>
+          {room.visibility !== 'public' && <VisibilityBadge className={classes.above} visibility={room.visibility} size='sm' iconSize={12} />}
+        </Group>
         {isOwner && (
           <Tooltip label='Delete this room'>
             <ActionIcon className={classes.above} variant='subtle' color='red' aria-label='Delete this room' onClick={() => onDelete(room)}>
@@ -80,12 +87,18 @@ const RoomCard = ({ room, user, onDelete }: RoomCardProps) => {
             <div className={classes.above}>
               <UserAvatars users={room.watchers.map(watcher => ({ id: watcher.id, name: watcher.pseudo }))} meId={user?.id} />
             </div>
-            <Group gap={6}>
-              <span className={classes.onlineDot} />
-              <Text size='sm' c='dimmed'>
-                {online} online
-              </Text>
-            </Group>
+            {isFull ? (
+              <Badge color='red' variant='light'>
+                Full
+              </Badge>
+            ) : (
+              <Group gap={6}>
+                <span className={classes.onlineDot} />
+                <Text size='sm' c='dimmed'>
+                  {limited ? `${online}/${room.maxParticipants}` : online} online
+                </Text>
+              </Group>
+            )}
           </Group>
         )}
         <Group gap={4} className={classes.join}>

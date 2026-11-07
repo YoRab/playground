@@ -1,5 +1,6 @@
 import { findExternalClient } from '@back/apps'
 import { API_KEYS } from '@back/constants/permissions'
+import { canAccessBoard } from '@back/repository/room'
 import { decodeJwtToken } from '@back/utils/auth'
 import type { Context, CreateHTTPContextOptions, CreateWSSContextFnOptions } from '@platform/server'
 
@@ -32,6 +33,7 @@ export const createContext = async ({ req, info }: CreateHTTPContextOptions | Cr
 
   return {
     permissions,
-    user
+    user,
+    canAccessBoard: boardId => !!user && canAccessBoard(boardId, user.id)
   }
 }

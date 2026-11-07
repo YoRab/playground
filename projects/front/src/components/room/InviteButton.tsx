@@ -1,11 +1,12 @@
 import { Button, CopyButton, Group, Popover, Text, TextInput } from '@mantine/core'
+import type { RoomVisibility } from '@platform/model'
 import { IconCheck, IconCopy, IconUserPlus } from '@tabler/icons-react'
 
 /**
  * The link of the room, to share. The copy button needs the clipboard API, only available in a secure context:
  * behind `vite --host`, a phone reaching the front through its LAN address (http) selects the link instead.
  */
-const InviteButton = ({ roomId }: { roomId: string }) => {
+const InviteButton = ({ roomId, visibility }: { roomId: string; visibility: RoomVisibility }) => {
   const link = `${window.location.origin}${window.location.pathname}#/room/${roomId}`
 
   return (
@@ -21,7 +22,9 @@ const InviteButton = ({ roomId }: { roomId: string }) => {
           Invite people
         </Text>
         <Text size='xs' c='dimmed' mb='sm'>
-          Anyone with this link can join the room after picking a nickname.
+          {visibility === 'protected'
+            ? 'Share this link and the password: they are asked once, after picking a nickname.'
+            : 'Anyone with this link can join the room after picking a nickname.'}
         </Text>
         <Group gap='xs' wrap='nowrap'>
           <TextInput value={link} readOnly flex={1} aria-label='Invitation link' data-autofocus onFocus={event => event.currentTarget.select()} />

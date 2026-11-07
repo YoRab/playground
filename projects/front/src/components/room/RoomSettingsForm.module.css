@@ -1,0 +1,12 @@
+/* a visibility of the room: the checked one takes the primary color */
+.visibility {
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+
+  &[data-checked] {
+    border-color: var(--mantine-primary-color-filled);
+    background-color: var(--mantine-primary-color-light);
+  }
+}
