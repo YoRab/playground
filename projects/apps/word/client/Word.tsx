@@ -1,43 +1,37 @@
-import { Paper } from '@mantine/core'
-import { type AppProps, ErrorAlert } from '@platform/client'
-import { type FormEvent, useRef, useState } from 'react'
+import { Paper, Stack } from '@mantine/core'
+import { type AppProps, ErrorAlert, Loading, PresenceBar, useYDoc, type YBoard } from '@platform/client'
+import RemoteCursors from './RemoteCursors'
 import { trpc } from './trpc'
+import { useYTextarea } from './useYTextarea'
 import classes from './Word.module.css'
 
-const Word = ({ boardId }: AppProps) => {
-  const contentEditableRef = useRef<HTMLDivElement>(null)
-  const [error, setError] = useState<string | undefined>()
+const Editor = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; userId: string }) => {
+  const { text, textareaProps } = useYTextarea(board)
 
-  trpc.word.watch.useSubscription(
-    { boardId },
-    {
-      onData(board) {
-        if (!contentEditableRef.current) return
-        if (contentEditableRef.current.textContent !== board.data) {
-          contentEditableRef.current.textContent = board.data
-        }
-      },
-      onError(err) {
-        console.error('Subscription error:', err)
-        setError(err.message)
-      }
-    }
+  return (
+    <Stack gap='sm'>
+      <PresenceBar awareness={board.awareness} userId={userId} unsent={unsent} />
+      <Paper withBorder p='md'>
+        <div className={classes.editor}>
+          <textarea {...textareaProps} className={`${classes.surface} ${classes.input}`} aria-label='Text of the board' spellCheck />
+          <RemoteCursors doc={board.doc} awareness={board.awareness} text={text} />
+        </div>
+      </Paper>
+    </Stack>
   )
+}
 
-  const setWordMutation = trpc.word.set.useMutation()
-
-  const onChangeWord = (e: FormEvent<HTMLElement>) => {
-    setWordMutation.mutate({ boardId, value: (e.target as HTMLElement).textContent ?? '' })
-  }
+const Word = ({ boardId, user }: AppProps) => {
+  const { client } = trpc.useUtils()
+  const { board, unsent, error } = useYDoc({ client: client.word, boardId, user })
 
   if (error) {
     return <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
   }
-  return (
-    <Paper withBorder p='md'>
-      <div ref={contentEditableRef} className={classes.content} contentEditable onInput={onChangeWord} />
-    </Paper>
-  )
+  if (!board) {
+    return <Loading />
+  }
+  return <Editor board={board} unsent={unsent} userId={user.id} />
 }
 
 export default Word

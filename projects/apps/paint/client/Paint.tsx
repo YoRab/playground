@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
 import '@yorab/react-paint/react-paint.css'
-import { type AppProps, ErrorAlert } from '@platform/client'
-import { Canvas, type DrawableShape, Editor, type EditorOptions, type StateData, useReactPaint } from '@yorab/react-paint'
+import { type AppProps, ErrorAlert, Loading, PresenceBar, useYDoc, type YBoard } from '@platform/client'
+import { Canvas, Editor, type EditorOptions, useReactPaint } from '@yorab/react-paint'
 import classes from './Paint.module.css'
+import RemotePointers, { usePointerPublisher } from './RemotePointers'
 import { trpc } from './trpc'
+import { usePaintDoc } from './usePaintDoc'
 
 // the editor injects its colors as CSS variables: Mantine variables follow the color scheme without JS
 const EDITOR_OPTIONS: EditorOptions = {
@@ -17,57 +18,39 @@ const EDITOR_OPTIONS: EditorOptions = {
   fontDisabledColor: 'var(--mantine-color-dimmed)'
 }
 
-const Paint = ({ boardId }: AppProps) => {
-  const tempShapes = useRef<string | undefined>('[]')
-  const [error, setError] = useState<string | undefined>()
-
+const Drawing = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; userId: string }) => {
   const paint = useReactPaint({
     mode: 'editor',
     width: 1280,
     height: 720
   })
-
-  trpc.paint.watch.useSubscription(
-    { boardId },
-    {
-      onData(board) {
-        if (JSON.stringify(board.data) === tempShapes.current) {
-          return
-        }
-        paint.resetCanvas(board.data as DrawableShape[])
-      },
-      onError(err) {
-        console.error('Subscription error:', err)
-        setError(err.message)
-      }
-    }
-  )
-
-  const { mutate: setPaintMutate } = trpc.paint.set.useMutation()
-
-  useEffect(() => {
-    const onDataChanged = (data: StateData, source: 'user' | 'remote') => {
-      if (source !== 'user') return
-      const shapes = data.shapes ?? []
-      const newData = JSON.stringify(shapes)
-      if (tempShapes.current === newData) return
-      tempShapes.current = newData
-      setPaintMutate({ boardId, value: shapes })
-    }
-    return paint.registerEvent('dataChanged', onDataChanged)
-  }, [paint, setPaintMutate, boardId])
+  usePaintDoc(paint, board.doc)
+  const pointerHandlers = usePointerPublisher(paint, board.awareness)
 
   return (
-    <div className={classes.screen}>
-      {error ? (
-        <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
-      ) : (
-        <Editor paint={paint} options={EDITOR_OPTIONS}>
-          <Canvas paint={paint} />
-        </Editor>
-      )}
+    <div className={classes.screen} {...pointerHandlers}>
+      <div className={classes.presence}>
+        <PresenceBar awareness={board.awareness} userId={userId} unsent={unsent} />
+      </div>
+      <Editor paint={paint} options={EDITOR_OPTIONS}>
+        <Canvas paint={paint} />
+      </Editor>
+      <RemotePointers paint={paint} awareness={board.awareness} />
     </div>
   )
+}
+
+const Paint = ({ boardId, user }: AppProps) => {
+  const { client } = trpc.useUtils()
+  const { board, unsent, error } = useYDoc({ client: client.paint, boardId, user })
+
+  if (error) {
+    return <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
+  }
+  if (!board) {
+    return <Loading />
+  }
+  return <Drawing board={board} unsent={unsent} userId={user.id} />
 }
 
 export default Paint

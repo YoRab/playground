@@ -1,11 +1,75 @@
-.content {
+.editor {
+  position: relative;
+}
+
+/* shared by the textarea and its mirror (the remote cursors): the text must wrap at exactly the same places */
+.surface {
   display: block;
+  box-sizing: border-box;
   width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  font-size: var(--mantine-font-size-md);
+  line-height: var(--mantine-line-height-md);
+  letter-spacing: normal;
+  tab-size: 4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.input {
   min-height: 200px;
+  resize: none;
+  overflow: hidden;
+  color: inherit;
+  background: transparent;
   border-radius: var(--mantine-radius-sm);
+  outline: none;
 
   &:focus-visible {
     outline: 2px solid var(--mantine-primary-color-filled);
     outline-offset: var(--mantine-spacing-xs);
   }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  pointer-events: none;
+}
+
+.selection {
+  background: color-mix(in srgb, var(--peer-color) 25%, transparent);
+}
+
+/* an empty inline box: takes no room in the text, its ::before draws the caret over the line */
+.caret {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -1px;
+    width: 2px;
+    background: var(--peer-color);
+  }
+}
+
+.caretLabel {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  padding: 0 4px;
+  border-radius: 3px 3px 3px 0;
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--mantine-color-white);
+  background: var(--peer-color);
 }

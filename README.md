@@ -6,7 +6,8 @@ A sandbox for real-time multiplayer mini-apps (chess with AI, paint, word…). A
 
 - **Rooms**: create a room, invite people, add boards (one board = one app instance)
 - **Chess**: moves validated by the server, play against a human or an external AI client
-- **Paint**, **Word**: shared boards (last write wins)
+- **Paint**: shared drawing synced with Yjs (shapes drawn at the same time merge, pointers of the others shown)
+- **Word**: shared text synced with Yjs (concurrent edits merge, remote cursors shown)
 - **Real-time**: tRPC subscriptions over WebSocket, live presence of the users in a room
 - **Identification**: nickname only, JWT token (no password)
 - **Storage**: in memory (everything is lost when the server restarts)
@@ -39,18 +40,17 @@ Dependency graph: `platform` ← `apps/*` ← `back` (the `server/` entries) and
 1. Create `projects/apps/<name>/` with a `package.json` (`"name": "@apps/<name>"`, its own dependencies, e.g. `react`, `zod`).
 2. **Server** – `server/index.ts`:
    ```ts
-   import { type AppApi, defineSharedStateApp } from '@platform/server'
-   import { z } from 'zod'
+   import { type AppApi, defineYDocApp } from '@platform/server'
 
-   const counter = defineSharedStateApp({ type: 'counter', schema: z.number().int(), initial: () => 0 })
+   const notes = defineYDocApp({ type: 'notes' })
 
-   export default counter
-   export type CounterApi = AppApi<typeof counter>
+   export default notes
+   export type NotesApi = AppApi<typeof notes>
    ```
-   `defineSharedStateApp` is enough when a board is one shared value: it generates the board lifecycle and the `watch` / `set` procedures. For custom logic, use `defineServerApp({ type, create, remove, router })` with `createTopic` / `liveQuery` (see `apps/chess/server`).
-3. **Client** – `client/trpc.ts` (`createTRPCReact<CounterApi>()` from `@platform/client`), a component receiving `AppProps` (`{ user, room, boardId }`), and `client/index.ts`:
+   `defineYDocApp` is enough when a board is a shared document: it generates the board lifecycle and the Yjs sync procedures (concurrent edits merge). The client side comes with it: `useYDoc`, `usePeers` and `PresenceBar` from `@platform/client` (see `apps/word/client`). For custom logic, use `defineServerApp({ type, create, remove, router })` with `createTopic` / `liveQuery` (see `apps/chess/server`).
+3. **Client** – `client/trpc.ts` (`createTRPCReact<NotesApi>()` from `@platform/client`), a component receiving `AppProps` (`{ user, room, boardId }`), and `client/index.ts`:
    ```ts
-   export default defineClientApp({ label: 'Counter', Component: lazy(() => import('./Counter')) })
+   export default defineClientApp({ label: 'Notes', Component: lazy(() => import('./Notes')) })
    ```
 4. **Register** it: one line in [projects/back/src/apps.ts](projects/back/src/apps.ts) and one in [projects/front/src/apps.ts](projects/front/src/apps.ts). The build fails if an app is registered on the server and not on the client.
 5. `pnpm install` to link the new package.
@@ -81,7 +81,7 @@ The only host-side configuration is the API key → permission table in [project
 ## 🛠️ Tech Stack
 
 - **Server**: tRPC 11 (standalone HTTP adapter + `ws` WebSocket adapter), Zod 4, jsonwebtoken, run from the sources with **tsx**
-- **Client**: React 19, Vite 8, tRPC React Query client, @dnd-kit (chess), @yorab/react-paint (paint)
+- **Client**: React 19, Vite 8, tRPC React Query client, @dnd-kit (chess), @yorab/react-paint (paint), Yjs (word, paint)
 - **Tooling**: TypeScript 7, Biome 2, pnpm workspaces
 
 ## 🚀 Getting Started
