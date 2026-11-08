@@ -22,7 +22,7 @@ There are no tests (`pnpm test` is a stub). Type-checking is the correctness gat
 
 The apps (`projects/apps/*`) and `platform` have no tsconfig or build script of their own: their `server/` code is type-checked through `back`, their `client/` code through `front`, via the path aliases. The server is never compiled: `tsx` runs the TypeScript sources and resolves the aliases.
 
-Local setup: `projects/back/src/constants/jwt.ts` is git-ignored and must exist: `export const JWT_SECRET_KEY = '…'`. The sibling repository `../mine.io` must exist too, with its dependencies installed (`pnpm install` there): `apps/mineio` links its library.
+Local setup: `projects/back/src/constants/jwt.ts` is git-ignored and must exist: `export const JWT_SECRET_KEY = '…'`. The sibling repository `../mine.io` must exist too, with its dependencies installed (`pnpm install` there): `apps/mineio` links its library. Same for `../react-paint-editor` (`apps/paint` links `@yorab/react-paint` with `link:`; its `dist/` must be built: `pnpm build` there).
 
 ## Architecture
 

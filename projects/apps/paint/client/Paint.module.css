@@ -12,6 +12,17 @@
   margin-bottom: var(--mantine-spacing-sm);
 }
 
+.editorContainer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+}
+
+.editorContainer>* {
+  flex: 1;
+}
+
 /* placed at the position of a remote pointer in the viewport: the tip of the arrow is the point */
 .pointer {
   position: fixed;

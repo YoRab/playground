@@ -22,7 +22,12 @@ const Drawing = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; us
   const paint = useReactPaint({
     mode: 'editor',
     width: 1280,
-    height: 720
+    height: 720,
+    options: {
+      size: 'infinite',
+      resize: 'extend',
+      canZoom: 'always'
+    }
   })
   usePaintDoc(paint, board.doc)
   const pointerHandlers = usePointerPublisher(paint, board.awareness)
@@ -32,9 +37,11 @@ const Drawing = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; us
       <div className={classes.presence}>
         <PresenceBar awareness={board.awareness} userId={userId} unsent={unsent} />
       </div>
-      <Editor paint={paint} options={EDITOR_OPTIONS}>
-        <Canvas paint={paint} />
-      </Editor>
+      <div className={classes.editorContainer}>
+        <Editor paint={paint} options={EDITOR_OPTIONS}>
+          <Canvas paint={paint} />
+        </Editor>
+      </div>
       <RemotePointers paint={paint} awareness={board.awareness} />
     </div>
   )

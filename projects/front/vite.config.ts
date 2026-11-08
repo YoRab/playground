@@ -11,8 +11,8 @@ export default defineConfig({
   },
   server: {
     fs: {
-      // apps/mineio links the sibling repository ../mine.io (its sources are outside of this workspace)
-      allow: [searchForWorkspaceRoot(process.cwd()), '../../../mine.io']
+      // apps/mineio and apps/paint link the sibling repositories ../mine.io and ../react-paint-editor (outside of this workspace)
+      allow: [searchForWorkspaceRoot(process.cwd()), '../../../mine.io', '../../../react-paint-editor']
     }
   }
 })
