@@ -45,9 +45,11 @@ const Drawing = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; us
         <PresenceBar awareness={board.awareness} userId={userId} unsent={unsent} />
       </div>
       <div className={classes.editorContainer}>
-        <Editor paint={paint} options={options}>
-          <Canvas paint={paint} />
-        </Editor>
+        <div className={classes.editorContent}>
+          <Editor paint={paint} options={options}>
+            <Canvas paint={paint} />
+          </Editor>
+        </div>
       </div>
       <RemotePointers paint={paint} awareness={board.awareness} />
     </div>

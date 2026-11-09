@@ -13,14 +13,15 @@
 }
 
 .editorContainer {
-  display: flex;
   flex: 1;
-  flex-direction: column;
   width: 100%;
+  position: relative;
 }
 
-.editorContainer>* {
-  flex: 1;
+.editorContent {
+  position: absolute;
+  width: 100%;
+  height: 100%;
 }
 
 /* placed at the position of a remote pointer in the viewport: the tip of the arrow is the point */
