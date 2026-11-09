@@ -1,20 +1,12 @@
 import { ActionIcon, Button, Group, Menu, Paper, SegmentedControl, SimpleGrid, Slider, Stack, Switch, Text, Title } from '@mantine/core'
+import { useTranslation } from '@platform/client'
 import type { User } from '@platform/model'
 import { IconPlayerPlay, IconRobot, IconUser, IconX } from '@tabler/icons-react'
-import {
-  BOT_LEVEL_LABELS,
-  BOT_LEVELS,
-  CHORDING_DESCRIPTION,
-  DENSITY,
-  DIAGONALS,
-  DIAGONALS_LABELS,
-  GRID_PRESET_KEYS,
-  GRID_PRESETS,
-  SEAT_LABELS
-} from '@yorab/mine.io/engine'
+import { BOT_LEVELS, DENSITY, DIAGONALS, GRID_PRESET_KEYS, GRID_PRESETS } from '@yorab/mine.io/engine'
 import { SeatSwatch, seatColor } from '@yorab/mine.io/react'
 import { useEffect, useState } from 'react'
 import type { Lobby } from '../server/types'
+import { SEAT_KEYS, usePercent, useSeatName } from './texts'
 import { trpc } from './trpc'
 
 // the corners as they sit on the grid: top left, top right, then bottom left, bottom right
@@ -23,9 +15,13 @@ const CORNERS = [0, 1, 3, 2]
 type LobbyProps = { boardId: string; lobby: Lobby; user: User }
 
 const SeatCard = ({ boardId, lobby, user, seat }: LobbyProps & { seat: number }) => {
+  const { t } = useTranslation('mineio')
+  const seatName = useSeatName()
   const entry = lobby.seats[seat] ?? null
   const isOwner = lobby.ownerId === user.id
   const seated = lobby.seats.some(other => other?.kind === 'human' && other.userId === user.id)
+  const isMe = entry?.kind === 'human' && entry.userId === user.id
+  const seatKey = SEAT_KEYS[seat]
   const takeSeat = trpc.mineio.takeSeat.useMutation()
   const leaveSeat = trpc.mineio.leaveSeat.useMutation()
   const addBot = trpc.mineio.addBot.useMutation()
@@ -36,25 +32,25 @@ const SeatCard = ({ boardId, lobby, user, seat }: LobbyProps & { seat: number })
       <Group gap='xs'>
         <SeatSwatch seat={seat} />
         <Text size='xs' c='dimmed' tt='uppercase' fw={700}>
-          {SEAT_LABELS[seat]}
+          {seatKey && t(`seats.${seatKey}`)}
         </Text>
       </Group>
       {entry === null ? (
         <Group gap='xs' mt='xs'>
           <Button size='xs' variant='light' loading={takeSeat.isPending} onClick={() => takeSeat.mutate({ boardId, seat })}>
-            {seated ? 'Move here' : 'Take this corner'}
+            {seated ? t('lobby.moveHere') : t('lobby.takeCorner')}
           </Button>
           {isOwner && (
             <Menu position='bottom-start'>
               <Menu.Target>
                 <Button size='xs' variant='default' leftSection={<IconRobot size={14} />}>
-                  Add a bot
+                  {t('lobby.addBot')}
                 </Button>
               </Menu.Target>
               <Menu.Dropdown>
                 {BOT_LEVELS.map(level => (
                   <Menu.Item key={level} onClick={() => addBot.mutate({ boardId, seat, level })}>
-                    {BOT_LEVEL_LABELS[level]}
+                    {t(`levels.${level}`)}
                   </Menu.Item>
                 ))}
               </Menu.Dropdown>
@@ -66,17 +62,16 @@ const SeatCard = ({ boardId, lobby, user, seat }: LobbyProps & { seat: number })
           <Group gap={6} wrap='nowrap' miw={0}>
             {entry.kind === 'bot' ? <IconRobot size={16} /> : <IconUser size={16} />}
             <Text fw={600} truncate>
-              {entry.name}
-              {entry.kind === 'human' && entry.userId === user.id ? ' (you)' : ''}
+              {isMe ? t('you', { ns: 'platform', name: entry.name }) : seatName(entry)}
             </Text>
           </Group>
-          {entry.kind === 'human' && entry.userId === user.id && (
+          {isMe && (
             <Button size='xs' variant='subtle' color='gray' onClick={() => leaveSeat.mutate({ boardId })}>
-              Leave
+              {t('lobby.leave')}
             </Button>
           )}
           {entry.kind === 'bot' && isOwner && (
-            <ActionIcon variant='subtle' color='gray' aria-label='Remove this bot' onClick={() => removeBot.mutate({ boardId, seat })}>
+            <ActionIcon variant='subtle' color='gray' aria-label={t('lobby.removeBot')} onClick={() => removeBot.mutate({ boardId, seat })}>
               <IconX size={16} />
             </ActionIcon>
           )}
@@ -87,26 +82,28 @@ const SeatCard = ({ boardId, lobby, user, seat }: LobbyProps & { seat: number })
 }
 
 const Settings = ({ boardId, lobby, user }: LobbyProps) => {
+  const { t } = useTranslation('mineio')
+  const percent = usePercent()
   const isOwner = lobby.ownerId === user.id
   const update = trpc.mineio.updateSettings.useMutation()
-  const percent = Math.round(lobby.settings.density * 100)
+  const current = Math.round(lobby.settings.density * 100)
   // the slider moves locally and is only sent when released
-  const [density, setDensity] = useState(percent)
-  useEffect(() => setDensity(percent), [percent])
+  const [density, setDensity] = useState(current)
+  useEffect(() => setDensity(current), [current])
 
   return (
     <Paper withBorder p='md'>
       <Stack gap='sm'>
         <div>
           <Text size='sm' fw={500} mb={4}>
-            Grid
+            {t('settings.grid')}
           </Text>
           <SegmentedControl
             fullWidth
             disabled={!isOwner}
             data={GRID_PRESET_KEYS.map(key => ({
               value: key,
-              label: `${GRID_PRESETS[key].label} ${GRID_PRESETS[key].cols}×${GRID_PRESETS[key].rows}`
+              label: `${t(`presets.${key}`)} ${GRID_PRESETS[key].cols}×${GRID_PRESETS[key].rows}`
             }))}
             value={lobby.settings.preset}
             onChange={preset => update.mutate({ boardId, preset })}
@@ -114,7 +111,7 @@ const Settings = ({ boardId, lobby, user }: LobbyProps) => {
         </div>
         <div>
           <Text size='sm' fw={500} mb={4}>
-            Mines: {density}%
+            {t('settings.mines', { percent: percent(density / 100) })}
           </Text>
           <Slider
             disabled={!isOwner}
@@ -122,29 +119,29 @@ const Settings = ({ boardId, lobby, user }: LobbyProps) => {
             max={DENSITY.max * 100}
             step={1}
             value={density}
-            label={value => `${value}%`}
+            label={value => percent(value / 100)}
             onChange={setDensity}
             onChangeEnd={value => update.mutate({ boardId, density: value / 100 })}
           />
         </div>
         <div>
           <Text size='sm' fw={500} mb={4}>
-            Diagonals
+            {t('settings.diagonals')}
           </Text>
           <SegmentedControl
             fullWidth
             disabled={!isOwner}
-            data={DIAGONALS.map(value => ({ value, label: DIAGONALS_LABELS[value].label }))}
+            data={DIAGONALS.map(value => ({ value, label: t(`diagonals.${value}.label`) }))}
             value={lobby.settings.diagonals}
             onChange={diagonals => update.mutate({ boardId, diagonals })}
           />
           <Text size='xs' c='dimmed' mt={4}>
-            {DIAGONALS_LABELS[lobby.settings.diagonals].description}
+            {t(`diagonals.${lobby.settings.diagonals}.description`)}
           </Text>
         </div>
         <Switch
-          label='Chording'
-          description={CHORDING_DESCRIPTION}
+          label={t('settings.chording')}
+          description={t('settings.chordingDescription')}
           disabled={!isOwner}
           checked={lobby.settings.chording}
           onChange={event => update.mutate({ boardId, chording: event.currentTarget.checked })}
@@ -157,6 +154,7 @@ const Settings = ({ boardId, lobby, user }: LobbyProps) => {
 /** Before a game: everyone picks a corner, the owner adds bots, sets the grid and starts */
 export const LobbyView = (props: LobbyProps) => {
   const { boardId, lobby, user } = props
+  const { t } = useTranslation('mineio')
   const isOwner = lobby.ownerId === user.id
   const players = lobby.seats.filter(Boolean).length
   const start = trpc.mineio.start.useMutation()
@@ -164,10 +162,9 @@ export const LobbyView = (props: LobbyProps) => {
   return (
     <Stack gap='md' w='100%' maw={720} mx='auto'>
       <div>
-        <Title order={3}>Mine.io</Title>
+        <Title order={3}>{t('label')}</Title>
         <Text c='dimmed' size='sm'>
-          Real-time territory minesweeper: reveal cells from your corner, close zones (they become yours), build a lead nobody can catch up with. A
-          mine stuns you for 5 seconds.
+          {t('lobby.intro')}
         </Text>
       </div>
       <SimpleGrid cols={{ base: 1, xs: 2 }} spacing='sm'>
@@ -184,11 +181,11 @@ export const LobbyView = (props: LobbyProps) => {
           loading={start.isPending}
           onClick={() => start.mutate({ boardId })}
         >
-          {players < 2 ? 'Two players needed (add a bot)' : 'Start the game'}
+          {players < 2 ? t('lobby.needTwo') : t('lobby.start')}
         </Button>
       ) : (
         <Text c='dimmed' ta='center'>
-          Waiting for the owner of the board to start the game…
+          {t('lobby.waitingOwner')}
         </Text>
       )}
     </Stack>

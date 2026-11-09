@@ -2,8 +2,22 @@
 // (the apps' `createTRPCReact()` instances then use the React context provided by the host)
 export { createWSClient, httpBatchLink, splitLink, wsLink } from '@trpc/client'
 export { createTRPCReact, getQueryKey } from '@trpc/react-query'
-export { type AppProps, type ClientApp, defineClientApp } from './defineApp'
+export { type AppMessages, type AppProps, type ClientApp, defineClientApp } from './defineApp'
 export { default as ErrorAlert } from './ErrorAlert'
+// i18next, same rule as tRPC: one copy, imported from here
+export {
+  errorMessage,
+  i18n,
+  initI18n,
+  LANGUAGES,
+  type Language,
+  type ServerError,
+  setLanguage,
+  Trans,
+  type TranslationOf,
+  useLanguage,
+  useTranslation
+} from './i18n'
 export { default as Loading } from './Loading'
 export { default as PresenceBar } from './PresenceBar'
 export { type Peer, peerColorVar, usePeers } from './peers'

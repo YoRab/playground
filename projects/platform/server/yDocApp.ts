@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { createBoardStore } from './boardStore'
 import { defineServerApp } from './defineApp'
 import { createTopic } from './realtime'
-import { boardProcedure, TRPCError } from './trpc'
+import { boardProcedure, i18nError } from './trpc'
 
 /** A change relayed to every client of a board. Binary Yjs payloads travel base64 encoded: tRPC speaks JSON. */
 export type YDocChange = { kind: 'update' | 'awareness'; update: string }
@@ -51,7 +51,7 @@ export const defineYDocApp = <const TType extends string>({
   })
   const changes = createTopic<YDocChange>(type)
 
-  const notFound = () => new TRPCError({ code: 'NOT_FOUND', message: `unknown ${type} board` })
+  const notFound = () => i18nError('NOT_FOUND', 'platform:errors.boardNotFound', `unknown ${type} board`)
 
   const findBoard = (boardId: string) => {
     const board = store.find(boardId)
@@ -63,7 +63,7 @@ export const defineYDocApp = <const TType extends string>({
     try {
       apply()
     } catch {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'invalid update' })
+      throw i18nError('BAD_REQUEST', 'platform:errors.invalidUpdate', 'invalid update')
     }
   }
 

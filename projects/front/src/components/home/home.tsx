@@ -3,7 +3,7 @@ import { confirmDelete } from '@front/utils/confirmDelete'
 import { reportError } from '@front/utils/reportError'
 import { trpc } from '@front/utils/trpc'
 import { Button, Container, Group, Modal, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core'
-import { Loading } from '@platform/client'
+import { errorMessage, Loading, Trans, useTranslation } from '@platform/client'
 import { ROOM_LIMITS, type Room } from '@platform/model'
 import { IconDoorEnter, IconPlus } from '@tabler/icons-react'
 import { useState } from 'react'
@@ -11,6 +11,7 @@ import classes from './Home.module.css'
 import RoomCard from './RoomCard'
 
 const Home = () => {
+  const { t } = useTranslation('host')
   // null until the first list arrives: no "No room yet" flash
   const [rooms, setRooms] = useState<Room[] | null>(null)
 
@@ -24,7 +25,7 @@ const Home = () => {
     },
     onError(err) {
       console.error('Subscription error:', err)
-      reportError('Rooms unavailable', err.message)
+      reportError(t('home.unavailable'), errorMessage(err))
     }
   })
 
@@ -41,9 +42,9 @@ const Home = () => {
 
   const deleteRoom = (room: Room) => {
     confirmDelete(
-      'Delete room',
+      t('home.deleteTitle'),
       <Text size='sm'>
-        Delete <strong>{room.title}</strong> and all its boards?
+        <Trans t={t} i18nKey='home.deleteBody' values={{ title: room.title }} components={{ strong: <strong /> }} />
       </Text>,
       () => deleteRoomMutation.mutate({ room: room.id })
     )
@@ -51,7 +52,7 @@ const Home = () => {
 
   const newRoomButton = (
     <Button leftSection={<IconPlus size={16} />} onClick={() => setCreating(true)}>
-      New room
+      {t('home.newRoom')}
     </Button>
   )
 
@@ -60,9 +61,9 @@ const Home = () => {
       <Stack gap='lg'>
         <Group justify='space-between' align='flex-end'>
           <div>
-            <Title order={2}>Rooms</Title>
+            <Title order={2}>{t('home.title')}</Title>
             <Text c='dimmed' size='sm'>
-              Join a room, or open your own and invite your friends.
+              {t('home.subtitle')}
             </Text>
           </div>
           {rooms?.length ? newRoomButton : null}
@@ -76,10 +77,10 @@ const Home = () => {
               <IconDoorEnter size={28} stroke={1.5} />
             </ThemeIcon>
             <Title order={4} mt='xs'>
-              No room yet
+              {t('home.empty')}
             </Title>
             <Text c='dimmed' size='sm' ta='center'>
-              Open one and share its link with your friends.
+              {t('home.emptyHint')}
             </Text>
             <Group mt='sm'>{newRoomButton}</Group>
           </Stack>
@@ -92,10 +93,14 @@ const Home = () => {
         )}
       </Stack>
 
-      <Modal opened={creating} onClose={() => setCreating(false)} title='New room' size='lg'>
+      <Modal opened={creating} onClose={() => setCreating(false)} title={t('home.newRoom')} size='lg'>
         <RoomSettingsForm
-          initialValues={{ title: user ? `${user.pseudo}'s room` : '', visibility: 'public', maxParticipants: ROOM_LIMITS.defaultParticipants }}
-          submitLabel='Create room'
+          initialValues={{
+            title: user ? t('home.defaultRoomTitle', { name: user.pseudo }) : '',
+            visibility: 'public',
+            maxParticipants: ROOM_LIMITS.defaultParticipants
+          }}
+          submitLabel={t('home.createRoom')}
           loading={addNewRoomMutation.isPending}
           onSubmit={values => addNewRoomMutation.mutate(values)}
         />

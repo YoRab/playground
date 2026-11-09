@@ -4,7 +4,7 @@ import { confirmDelete } from '@front/utils/confirmDelete'
 import { getPathParams } from '@front/utils/path'
 import { trpc } from '@front/utils/trpc'
 import { Button, Center, Modal, Stack, Text } from '@mantine/core'
-import { ErrorAlert, Loading } from '@platform/client'
+import { ErrorAlert, Loading, type ServerError, Trans, useTranslation } from '@platform/client'
 import type { Room, RoomView, User } from '@platform/model'
 import { IconArrowLeft } from '@tabler/icons-react'
 import { Suspense, useEffect, useState } from 'react'
@@ -15,6 +15,7 @@ import RoomLocked from './RoomLocked'
 import RoomOverview from './RoomOverview'
 
 const RoomInner = ({ user, room }: { user: User; room: Room }) => {
+  const { t } = useTranslation('host')
   const isOwner = user.id === room.owner?.id
   const [showPicker, setShowPicker] = useState(false)
   // the board asked by the URL (#/room/<roomId>/<boardId>); the overview when there is none, or when it is missing or deleted
@@ -45,17 +46,17 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
   }
 
   const deleteBoard = (boardId: string) => {
-    confirmDelete('Delete board', 'Delete this board for everyone in the room?', () => deleteBoardMutation.mutate({ roomId: room.id, boardId }))
+    confirmDelete(t('room.deleteBoardTitle'), t('room.deleteBoardBody'), () => deleteBoardMutation.mutate({ roomId: room.id, boardId }))
   }
 
   const kick = (target: User) => {
     confirmDelete(
-      'Kick out',
+      t('room.kickTitle'),
       <Text size='sm'>
-        Kick <strong>{target.pseudo}</strong> out of the room? They won't be able to come back until you let them in from the room settings.
+        <Trans t={t} i18nKey='room.kickBody' values={{ name: target.pseudo }} components={{ strong: <strong /> }} />
       </Text>,
       () => kickMutation.mutate({ roomId: room.id, userId: target.id }),
-      'Kick out'
+      t('room.kickConfirm')
     )
   }
 
@@ -77,11 +78,11 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
         </Suspense>
       ) : (
         <Center flex={1}>
-          <Text c='dimmed'>Unknown board type: {activeBoard.type}</Text>
+          <Text c='dimmed'>{t('room.unknownType', { type: activeBoard.type })}</Text>
         </Center>
       )}
 
-      <Modal opened={showPicker} onClose={() => setShowPicker(false)} title='Add a board' size='lg'>
+      <Modal opened={showPicker} onClose={() => setShowPicker(false)} title={t('room.addBoard')} size='lg'>
         <AppPicker onPick={addBoard} />
       </Modal>
     </Stack>
@@ -91,7 +92,9 @@ const RoomInner = ({ user, room }: { user: User; room: Room }) => {
 const RoomComponent = () => {
   // the room once in it, or why the user is kept out: it changes live (password accepted, spot freed, kicked out…)
   const [view, setView] = useState<RoomView>()
-  const [error, setError] = useState<string | undefined>()
+  const { t } = useTranslation('host')
+  // kept as received: shown in the language of the moment
+  const [error, setError] = useState<ServerError | undefined>()
 
   const userQuery = trpc.public.getMe.useQuery()
   const user = userQuery.data
@@ -106,7 +109,7 @@ const RoomComponent = () => {
       },
       onError(err) {
         console.error('Subscription error:', err)
-        setError(err.message)
+        setError(err)
       }
     }
   )
@@ -115,9 +118,9 @@ const RoomComponent = () => {
     return (
       <Stack gap='md'>
         <Button component='a' href='#/home' variant='subtle' leftSection={<IconArrowLeft size={16} />} w='fit-content'>
-          All rooms
+          {t('room.allRooms')}
         </Button>
-        <ErrorAlert title='Room unavailable'>{error}</ErrorAlert>
+        <ErrorAlert title={t('room.unavailable')} error={error} />
       </Stack>
     )
   }

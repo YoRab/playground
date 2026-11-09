@@ -1,4 +1,5 @@
 import { Avatar, type MantineColor, type MantineSize, Tooltip } from '@mantine/core'
+import { useTranslation } from './i18n'
 import { userColor } from './userColor'
 
 type AvatarUser = {
@@ -24,13 +25,14 @@ type UserAvatarsProps = {
 
 /** Overlapping avatars of a list of users, each with its name in a tooltip */
 const UserAvatars = ({ users, max = 4, size = 'sm', meId }: UserAvatarsProps) => {
+  const { t } = useTranslation('platform')
   const shown = users.length > max ? users.slice(0, max - 1) : users
   const hidden = users.slice(shown.length)
 
   return (
     <Avatar.Group spacing='sm'>
       {shown.map(user => (
-        <Tooltip key={user.id} label={user.id === meId ? `${user.name} (you)` : user.name}>
+        <Tooltip key={user.id} label={user.id === meId ? t('you', { name: user.name }) : user.name}>
           <Avatar
             name={user.name}
             color={user.color ?? userColor(user.id)}

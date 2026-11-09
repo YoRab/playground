@@ -1,4 +1,5 @@
 import { Button, CopyButton, Group, Popover, Text, TextInput } from '@mantine/core'
+import { useTranslation } from '@platform/client'
 import type { RoomVisibility } from '@platform/model'
 import { IconCheck, IconCopy, IconUserPlus } from '@tabler/icons-react'
 
@@ -7,6 +8,7 @@ import { IconCheck, IconCopy, IconUserPlus } from '@tabler/icons-react'
  * behind `vite --host`, a phone reaching the front through its LAN address (http) selects the link instead.
  */
 const InviteButton = ({ roomId, visibility }: { roomId: string; visibility: RoomVisibility }) => {
+  const { t } = useTranslation('host')
   const link = `${window.location.origin}${window.location.pathname}#/room/${roomId}`
 
   return (
@@ -14,20 +16,18 @@ const InviteButton = ({ roomId, visibility }: { roomId: string; visibility: Room
     <Popover position='bottom-end' width={360} shadow='md' withArrow trapFocus>
       <Popover.Target>
         <Button variant='light' leftSection={<IconUserPlus size={16} />}>
-          Invite
+          {t('invite.button')}
         </Button>
       </Popover.Target>
       <Popover.Dropdown>
         <Text size='sm' fw={600}>
-          Invite people
+          {t('invite.title')}
         </Text>
         <Text size='xs' c='dimmed' mb='sm'>
-          {visibility === 'protected'
-            ? 'Share this link and the password: they are asked once, after picking a nickname.'
-            : 'Anyone with this link can join the room after picking a nickname.'}
+          {visibility === 'protected' ? t('invite.protected') : t('invite.public')}
         </Text>
         <Group gap='xs' wrap='nowrap'>
-          <TextInput value={link} readOnly flex={1} aria-label='Invitation link' data-autofocus onFocus={event => event.currentTarget.select()} />
+          <TextInput value={link} readOnly flex={1} aria-label={t('invite.link')} data-autofocus onFocus={event => event.currentTarget.select()} />
           {window.isSecureContext && (
             <CopyButton value={link}>
               {({ copied, copy }) => (
@@ -37,7 +37,7 @@ const InviteButton = ({ roomId, visibility }: { roomId: string; visibility: Room
                   leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
                   miw={96}
                 >
-                  {copied ? 'Copied' : 'Copy'}
+                  {copied ? t('invite.copied') : t('invite.copy')}
                 </Button>
               )}
             </CopyButton>

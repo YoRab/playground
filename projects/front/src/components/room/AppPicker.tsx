@@ -16,7 +16,7 @@ const AppPicker = ({ onPick, disabled }: { onPick: (type: AppType) => void; disa
         disabled={disabled}
         onClick={() => onPick(type)}
       >
-        <AppInfo app={app} />
+        <AppInfo type={type} />
       </UnstyledButton>
     ))}
   </SimpleGrid>

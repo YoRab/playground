@@ -2,7 +2,7 @@ import roomApi, { type DBRoom } from '@back/api/room'
 import { roomPresence } from '@back/services/rooms'
 import { hashPassword, verifyPassword } from '@back/utils/password'
 import type { LockedRoom, Room, RoomLockReason, RoomView, RoomVisibility } from '@platform/model'
-import { TRPCError, users } from '@platform/server'
+import { i18nError, users } from '@platform/server'
 
 /** What the owner chooses when creating a room, and can change afterwards. `password`: a new one (protected room only). */
 type RoomSettings = {
@@ -55,7 +55,7 @@ const lockReason = (room: DBRoom, userId: string): RoomLockReason | null => {
   return !present.includes(userId) && present.length >= room.maxParticipants ? 'full' : null
 }
 
-const notFound = () => new TRPCError({ code: 'NOT_FOUND', message: 'This room does not exist (anymore)' })
+const notFound = () => i18nError('NOT_FOUND', 'host:errors.room.notFound', 'This room does not exist (anymore)')
 
 /** The hash of the password of a protected room, null for the others */
 const hashIfProtected = ({ visibility, password }: RoomSettings) => (visibility === 'protected' && password ? hashPassword(password) : null)
@@ -64,7 +64,7 @@ const hashIfProtected = ({ visibility, password }: RoomSettings) => (visibility 
 const findOwnedRoom = async (roomId: string, ownerId: string) => {
   const room = await roomApi.findById(roomId)
   if (!room) throw notFound()
-  if (room.owner !== ownerId) throw new TRPCError({ code: 'FORBIDDEN', message: 'Only the owner of the room can do this' })
+  if (room.owner !== ownerId) throw i18nError('FORBIDDEN', 'host:errors.room.ownerOnly', 'Only the owner of the room can do this')
   return room
 }
 
@@ -142,7 +142,8 @@ export const updateRoom = async (roomId: string, ownerId: string, settings: Room
   const room = await findOwnedRoom(roomId, ownerId)
 
   const passwordHash = visibility === 'protected' ? (newHash ?? room.passwordHash) : null
-  if (visibility === 'protected' && !passwordHash) throw new TRPCError({ code: 'BAD_REQUEST', message: 'A protected room needs a password' })
+  if (visibility === 'protected' && !passwordHash)
+    throw i18nError('BAD_REQUEST', 'host:errors.room.passwordRequired', 'A protected room needs a password')
 
   let members = room.members
   if (visibility === 'private') members = []
@@ -159,12 +160,12 @@ export const joinRoom = async (roomId: string, userId: string, password: string)
   const room = await roomApi.findById(roomId)
   if (!room) throw notFound()
   const reason = accessReason(room, userId)
-  if (reason === 'banned') throw new TRPCError({ code: 'FORBIDDEN', message: 'The owner removed you from this room' })
-  if (reason === 'private') throw new TRPCError({ code: 'FORBIDDEN', message: 'This room is private' })
+  if (reason === 'banned') throw i18nError('FORBIDDEN', 'host:errors.room.banned', 'The owner removed you from this room')
+  if (reason === 'private') throw i18nError('FORBIDDEN', 'host:errors.room.private', 'This room is private')
   if (reason !== 'password') return
 
   const isRight = !!room.passwordHash && (await verifyPassword(password, room.passwordHash))
-  if (!isRight) throw new TRPCError({ code: 'FORBIDDEN', message: 'Wrong password' })
+  if (!isRight) throw i18nError('FORBIDDEN', 'host:errors.room.wrongPassword', 'Wrong password')
 
   // read again: the room may have changed while the password was checked
   const fresh = await roomApi.findById(roomId)
@@ -174,7 +175,7 @@ export const joinRoom = async (roomId: string, userId: string, password: string)
 /** Kicks a user out of the room: banned until the owner lets them in again (and admitted no more) */
 export const kickUser = async (roomId: string, ownerId: string, userId: string): Promise<void> => {
   const room = await findOwnedRoom(roomId, ownerId)
-  if (userId === ownerId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'You cannot kick yourself out' })
+  if (userId === ownerId) throw i18nError('BAD_REQUEST', 'host:errors.room.cannotKickSelf', 'You cannot kick yourself out')
 
   await roomApi.update(roomId, {
     banned: [...new Set([...room.banned, userId])],

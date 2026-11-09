@@ -49,3 +49,9 @@ export type LockedRoom = Pick<Room, 'id' | 'title' | 'owner' | 'visibility' | 'm
 
 /** What the room subscription yields: the room once in, or why the user is kept out (re-evaluated on every change) */
 export type RoomView = { status: 'joined'; room: Room } | { status: 'locked'; reason: RoomLockReason; room: LockedRoom }
+
+/**
+ * The message of a server error, for the client to show it in its user's language (see `i18nError` in `@platform/server`):
+ * `key` is `<namespace>:<key>` in the dictionaries, `params` its interpolation values
+ */
+export type ErrorI18n = { key: string; params?: Record<string, string | number> }

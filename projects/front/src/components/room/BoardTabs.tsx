@@ -1,7 +1,8 @@
 import type { AppType } from '@back/apps'
 import AppIcon from '@front/components/AppIcon'
-import { boardLabels } from '@front/utils/boardLabels'
+import { useBoardLabels } from '@front/hooks/useBoardLabels'
 import { ActionIcon, Tabs, Tooltip } from '@mantine/core'
+import { useTranslation } from '@platform/client'
 import type { Board } from '@platform/model'
 import { IconLayoutDashboard, IconPlus, IconTrash } from '@tabler/icons-react'
 import classes from './Room.module.css'
@@ -28,14 +29,15 @@ type BoardTabsProps = {
 }
 
 const BoardTabs = ({ boards, active, onSelect, owner }: BoardTabsProps) => {
-  const labels = boardLabels(boards)
+  const { t } = useTranslation('host')
+  const labels = useBoardLabels(boards)
 
   return (
     <div className={classes.tabsRow}>
       <Tabs value={active ?? OVERVIEW} onChange={value => value && onSelect(value === OVERVIEW ? undefined : value)} className={classes.tabs}>
         <Tabs.List className={classes.tabsList}>
           <Tabs.Tab value={OVERVIEW} className={classes.tab} leftSection={<IconLayoutDashboard size={16} />}>
-            Overview
+            {t('tabs.overview')}
           </Tabs.Tab>
           {boards.map((board, index) => (
             <Tabs.Tab key={board.id} value={board.id} className={classes.tab} leftSection={<AppIcon type={board.type} />}>
@@ -46,18 +48,18 @@ const BoardTabs = ({ boards, active, onSelect, owner }: BoardTabsProps) => {
       </Tabs>
       {owner && (
         <>
-          <Tooltip label='Add a board'>
-            <ActionIcon variant='subtle' aria-label='Add a board' loading={owner.adding} onClick={owner.onAdd}>
+          <Tooltip label={t('room.addBoard')}>
+            <ActionIcon variant='subtle' aria-label={t('room.addBoard')} loading={owner.adding} onClick={owner.onAdd}>
               <IconPlus size={18} />
             </ActionIcon>
           </Tooltip>
           {active && (
-            <Tooltip label='Delete this board'>
+            <Tooltip label={t('tabs.deleteBoard')}>
               <ActionIcon
                 className={classes.deleteBoard}
                 variant='subtle'
                 color='red'
-                aria-label='Delete this board'
+                aria-label={t('tabs.deleteBoard')}
                 onClick={() => owner.onDelete(active)}
               >
                 <IconTrash size={16} />

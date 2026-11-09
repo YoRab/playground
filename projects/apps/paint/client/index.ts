@@ -1,10 +1,11 @@
 import { defineClientApp } from '@platform/client'
 import { lazy } from 'react'
 import icon from './assets/paint.svg'
+import en from './locales/en'
+import fr from './locales/fr'
 
 export default defineClientApp({
-  label: 'Paint',
-  description: "A shared canvas: draw together and see everyone's pointer",
+  messages: { en, fr },
   icon,
   color: 'pink',
   Component: lazy(() => import('./Paint'))

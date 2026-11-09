@@ -1,11 +1,13 @@
 import { Button, Group, Menu, Paper, Stack, Text, useComputedColorScheme } from '@mantine/core'
 import { useThrottledCallback } from '@mantine/hooks'
+import { useTranslation } from '@platform/client'
 import type { User } from '@platform/model'
 import { IconChevronDown, IconPlayerStop, IconRefresh } from '@tabler/icons-react'
-import { END_REASON_LABELS, rankSeats } from '@yorab/mine.io/engine'
+import { rankSeats } from '@yorab/mine.io/engine'
 import { MineBoard, Scoreboard, SeatSwatch, useBoardStore, useTouchDevice } from '@yorab/mine.io/react'
 import type { Lobby } from '../server/types'
 import classes from './Game.module.css'
+import { usePercent, useSeatName } from './texts'
 import { trpc } from './trpc'
 
 type GameProps = { boardId: string; lobby: Lobby; user: User }
@@ -13,14 +15,24 @@ type GameProps = { boardId: string; lobby: Lobby; user: User }
 const FILL = { position: 'absolute', inset: 0 } as const
 
 const Result = ({ boardId, lobby, user }: GameProps) => {
+  const { t } = useTranslation('mineio')
+  const percent = usePercent()
+  const seatName = useSeatName()
   const view = useBoardStore(state => state.view)
   const me = useBoardStore(state => state.me)
   const backToLobby = trpc.mineio.backToLobby.useMutation()
   if (view?.status !== 'ended') return null
 
   const total = view.cols * view.rows
-  const title = view.winner === null ? 'Tie!' : view.winner === me ? 'You win!' : `${view.seats[view.winner]?.name ?? 'Someone'} wins`
-  const reason = view.endReason ? END_REASON_LABELS[view.endReason] : null
+  // the lobby keeps the corners during the game: a bot is named after its level
+  const nameOf = (seat: number) => seatName(lobby.seats[seat]) ?? view.seats[seat]?.name
+  const title =
+    view.winner === null
+      ? t('result.tie')
+      : view.winner === me
+        ? t('result.youWin')
+        : t('result.wins', { name: nameOf(view.winner) ?? t('result.someone') })
+  const reason = view.endReason ? t(`endReasons.${view.endReason}`) : null
 
   return (
     <Paper withBorder p='sm'>
@@ -40,7 +52,7 @@ const Result = ({ boardId, lobby, user }: GameProps) => {
                 </Text>
                 <SeatSwatch seat={seat} />
                 <Text size='sm'>
-                  {view.seats[seat]?.name} · {((score / total) * 100).toFixed(1)}%
+                  {nameOf(seat)} · {percent(score / total, 1)}
                 </Text>
               </Group>
             ))}
@@ -48,11 +60,11 @@ const Result = ({ boardId, lobby, user }: GameProps) => {
         </Stack>
         {lobby.ownerId === user.id ? (
           <Button leftSection={<IconRefresh size={16} />} loading={backToLobby.isPending} onClick={() => backToLobby.mutate({ boardId })}>
-            Play again
+            {t('result.playAgain')}
           </Button>
         ) : (
           <Text size='sm' c='dimmed'>
-            The owner can start another game.
+            {t('result.ownerCanRestart')}
           </Text>
         )}
       </Group>
@@ -63,6 +75,7 @@ const Result = ({ boardId, lobby, user }: GameProps) => {
 /** A game in progress (or just over): the grid, the scores, and for the owner a way back to the lobby */
 export const GameView = (props: GameProps) => {
   const { boardId, lobby, user } = props
+  const { t } = useTranslation('mineio')
   const me = useBoardStore(state => state.me)
   const playing = useBoardStore(state => state.view?.status === 'playing')
   const colorScheme = useComputedColorScheme('light')
@@ -71,7 +84,9 @@ export const GameView = (props: GameProps) => {
   // a lost hover is not worth a notification
   const hover = trpc.mineio.hover.useMutation({ meta: { handlesError: true } })
   const backToLobby = trpc.mineio.backToLobby.useMutation()
-  const chord = (verb: string) => (lobby.settings.chording ? ` · ${verb} a number: reveal around it` : '')
+  // how to play, for a touch screen or a mouse
+  const input = touch ? 'touch' : 'mouse'
+  const help = [t(`game.${input}`), ...(lobby.settings.chording ? [t(`game.${input}Chord`)] : []), t(`game.${input}Move`)]
   const sendHover = useThrottledCallback((cell: number | null) => hover.mutate({ boardId, cell }), 120)
 
   return (
@@ -82,12 +97,12 @@ export const GameView = (props: GameProps) => {
           <Menu position='bottom-end'>
             <Menu.Target>
               <Button size='xs' variant='default' rightSection={<IconChevronDown size={14} />}>
-                Game
+                {t('game.menu')}
               </Button>
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Item color='red' leftSection={<IconPlayerStop size={16} />} onClick={() => backToLobby.mutate({ boardId })}>
-                Stop and go back to the lobby
+                {t('game.stop')}
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
@@ -105,11 +120,7 @@ export const GameView = (props: GameProps) => {
         />
       </div>
       <Text size='xs' c='dimmed' ta='center'>
-        {me === null
-          ? 'You are watching this game.'
-          : touch
-            ? `Tap: reveal · long press: flag (only for you)${chord('tap')} · drag, pinch: move, zoom`
-            : `Click: reveal · right click: flag (only for you)${chord('click')} · drag, wheel: move, zoom`}
+        {me === null ? t('game.watching') : help.join(' · ')}
       </Text>
     </div>
   )

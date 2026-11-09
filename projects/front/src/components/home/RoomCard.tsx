@@ -2,9 +2,10 @@ import { findClientApp } from '@front/apps'
 import AppIcon from '@front/components/AppIcon'
 import RelativeTime from '@front/components/RelativeTime'
 import VisibilityBadge from '@front/components/room/VisibilityBadge'
+import { useAppTexts } from '@front/hooks/useAppTexts'
 import { countByType } from '@front/utils/countByType'
 import { ActionIcon, Badge, Card, Group, Text, Tooltip } from '@mantine/core'
-import { UserAvatar, UserAvatars } from '@platform/client'
+import { UserAvatar, UserAvatars, useTranslation } from '@platform/client'
 import type { Room, User } from '@platform/model'
 import { IconArrowRight, IconTrash } from '@tabler/icons-react'
 import classes from './Home.module.css'
@@ -17,10 +18,12 @@ type RoomCardProps = {
 
 /** The boards of a room, one badge per app type ("Word ×2") */
 const BoardBadges = ({ room }: { room: Room }) => {
+  const { t } = useTranslation('host')
+  const appTexts = useAppTexts()
   if (room.boards.length === 0) {
     return (
       <Text size='sm' c='dimmed'>
-        No board yet
+        {t('roomCard.noBoard')}
       </Text>
     )
   }
@@ -28,7 +31,7 @@ const BoardBadges = ({ room }: { room: Room }) => {
     const app = findClientApp(type)
     return (
       <Badge key={type} size='lg' color={app?.color ?? 'gray'} tt='none' fw={500} leftSection={<AppIcon type={type} size={14} />}>
-        {app?.label ?? type}
+        {appTexts(type).label}
         {count > 1 ? ` ×${count}` : ''}
       </Badge>
     )
@@ -40,6 +43,7 @@ const BoardBadges = ({ room }: { room: Room }) => {
  * button inside a link); the delete button and the avatars sit above it.
  */
 const RoomCard = ({ room, user, onDelete }: RoomCardProps) => {
+  const { t } = useTranslation('host')
   const isOwner = !!user && room.owner?.id === user.id
   const online = room.watchers.length
   // a private room is the owner's alone: no limit to show
@@ -58,8 +62,8 @@ const RoomCard = ({ room, user, onDelete }: RoomCardProps) => {
           {room.visibility !== 'public' && <VisibilityBadge className={classes.above} visibility={room.visibility} size='sm' iconSize={12} />}
         </Group>
         {isOwner && (
-          <Tooltip label='Delete this room'>
-            <ActionIcon className={classes.above} variant='subtle' color='red' aria-label='Delete this room' onClick={() => onDelete(room)}>
+          <Tooltip label={t('roomCard.delete')}>
+            <ActionIcon className={classes.above} variant='subtle' color='red' aria-label={t('roomCard.delete')} onClick={() => onDelete(room)}>
               <IconTrash size={16} />
             </ActionIcon>
           </Tooltip>
@@ -69,7 +73,7 @@ const RoomCard = ({ room, user, onDelete }: RoomCardProps) => {
       <Group gap={6} mt={4} wrap='nowrap'>
         <UserAvatar user={room.owner && { id: room.owner.id, name: room.owner.pseudo }} size={20} />
         <Text size='sm' c='dimmed' truncate>
-          {isOwner ? 'You' : (room.owner?.pseudo ?? 'Unknown')} · <RelativeTime timestamp={room.createdAt} />
+          {isOwner ? t('roomCard.you') : (room.owner?.pseudo ?? t('roomCard.unknownOwner'))} · <RelativeTime timestamp={room.createdAt} />
         </Text>
       </Group>
 
@@ -80,7 +84,7 @@ const RoomCard = ({ room, user, onDelete }: RoomCardProps) => {
       <Group justify='space-between' mt='md' pt='sm' className={classes.footer}>
         {online === 0 ? (
           <Text size='sm' c='dimmed'>
-            Nobody here
+            {t('roomCard.nobody')}
           </Text>
         ) : (
           <Group gap='xs'>
@@ -89,13 +93,13 @@ const RoomCard = ({ room, user, onDelete }: RoomCardProps) => {
             </div>
             {isFull ? (
               <Badge color='red' variant='light'>
-                Full
+                {t('roomCard.full')}
               </Badge>
             ) : (
               <Group gap={6}>
                 <span className={classes.onlineDot} />
                 <Text size='sm' c='dimmed'>
-                  {limited ? `${online}/${room.maxParticipants}` : online} online
+                  {limited ? t('roomCard.onlineOf', { count: online, max: room.maxParticipants }) : t('roomCard.online', { count: online })}
                 </Text>
               </Group>
             )}
@@ -103,7 +107,7 @@ const RoomCard = ({ room, user, onDelete }: RoomCardProps) => {
         )}
         <Group gap={4} className={classes.join}>
           <Text size='sm' fw={600} c='inherit'>
-            Join
+            {t('roomCard.join')}
           </Text>
           <IconArrowRight size={16} />
         </Group>

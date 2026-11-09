@@ -1,9 +1,9 @@
 import { findClientApp } from '@front/apps'
 import AppInfo from '@front/components/AppInfo'
 import RelativeTime from '@front/components/RelativeTime'
-import { boardLabels } from '@front/utils/boardLabels'
+import { useBoardLabels } from '@front/hooks/useBoardLabels'
 import { ActionIcon, Badge, Button, Card, Center, Group, Loader, SimpleGrid, Stack, Text, Title, Tooltip, UnstyledButton } from '@mantine/core'
-import { UserAvatar } from '@platform/client'
+import { UserAvatar, useTranslation } from '@platform/client'
 import type { Board, Room, User } from '@platform/model'
 import { IconArrowRight, IconPlus, IconTrash, IconUserX } from '@tabler/icons-react'
 import AppPicker from './AppPicker'
@@ -21,11 +21,12 @@ type RoomOverviewProps = {
 }
 
 /** A room without a board: the owner picks the first app, the others wait for them */
-const NoBoard = ({ room, owner }: { room: Room; owner?: OwnerActions | undefined }) =>
-  owner ? (
+const NoBoard = ({ room, owner }: { room: Room; owner?: OwnerActions | undefined }) => {
+  const { t } = useTranslation('host')
+  return owner ? (
     <Stack gap='md'>
       <Text c='dimmed' size='sm'>
-        Pick an app to add the first board: everyone in the room will see it.
+        {t('overview.pickFirst')}
       </Text>
       <AppPicker onPick={owner.onPick} disabled={owner.adding} />
     </Stack>
@@ -33,22 +34,24 @@ const NoBoard = ({ room, owner }: { room: Room; owner?: OwnerActions | undefined
     <Center py='xl'>
       <Stack align='center' gap='sm'>
         <Loader type='dots' />
-        <Text c='dimmed'>Waiting for {room.owner?.pseudo ?? 'the owner'} to add a board</Text>
+        <Text c='dimmed'>{t('overview.waiting', { name: room.owner?.pseudo ?? t('overview.theOwner') })}</Text>
       </Stack>
     </Center>
   )
+}
 
 /** A board of the room: what it is, open it, delete it (owner) */
 const BoardCard = ({ board, label, onOpen, onDelete }: { board: Board; label: string; onOpen: () => void; onDelete?: (() => void) | undefined }) => {
+  const { t } = useTranslation('host')
   const app = findClientApp(board.type)
 
   return (
     <Card className={classes.boardCard} shadow='xs'>
       <Group justify='space-between' align='flex-start' wrap='nowrap' gap='xs'>
-        {app ? <AppInfo app={app} label={label} size={40} /> : <Text c='dimmed'>Unknown board type: {board.type}</Text>}
+        {app ? <AppInfo type={board.type} label={label} size={40} /> : <Text c='dimmed'>{t('room.unknownType', { type: board.type })}</Text>}
         {onDelete && (
-          <Tooltip label='Delete this board'>
-            <ActionIcon variant='subtle' color='red' aria-label={`Delete ${label}`} onClick={onDelete}>
+          <Tooltip label={t('tabs.deleteBoard')}>
+            <ActionIcon variant='subtle' color='red' aria-label={t('overview.deleteBoard', { label })} onClick={onDelete}>
               <IconTrash size={16} />
             </ActionIcon>
           </Tooltip>
@@ -56,7 +59,7 @@ const BoardCard = ({ board, label, onOpen, onDelete }: { board: Board; label: st
       </Group>
       <Group justify='flex-end' mt='md'>
         <Button variant='light' color={app?.color} size='xs' rightSection={<IconArrowRight size={14} />} onClick={onOpen}>
-          Open
+          {t('overview.open')}
         </Button>
       </Group>
     </Card>
@@ -65,12 +68,13 @@ const BoardCard = ({ board, label, onOpen, onDelete }: { board: Board; label: st
 
 /** The main tab of a room: its boards at a glance and who is here */
 const RoomOverview = ({ room, user, onOpen, owner, onKick }: RoomOverviewProps) => {
-  const labels = boardLabels(room.boards)
+  const { t } = useTranslation('host')
+  const labels = useBoardLabels(room.boards)
 
   return (
     <Stack gap='xl' pb='md'>
       <Stack gap='sm'>
-        <Title order={4}>Boards</Title>
+        <Title order={4}>{t('overview.boards')}</Title>
         {room.boards.length === 0 ? (
           <NoBoard room={room} owner={owner} />
         ) : (
@@ -87,7 +91,7 @@ const RoomOverview = ({ room, user, onOpen, owner, onKick }: RoomOverviewProps) 
             {owner && (
               <UnstyledButton className={classes.addCard} onClick={owner.onAdd} disabled={owner.adding}>
                 <IconPlus size={20} />
-                <Text fw={500}>Add a board</Text>
+                <Text fw={500}>{t('room.addBoard')}</Text>
               </UnstyledButton>
             )}
           </SimpleGrid>
@@ -95,28 +99,35 @@ const RoomOverview = ({ room, user, onOpen, owner, onKick }: RoomOverviewProps) 
       </Stack>
 
       <Stack gap='sm'>
-        <Title order={4}>In the room</Title>
+        <Title order={4}>{t('overview.inTheRoom')}</Title>
         <Text size='sm' c='dimmed'>
-          Created by {owner ? 'you' : (room.owner?.pseudo ?? 'an unknown user')} <RelativeTime timestamp={room.createdAt} />
+          {owner ? t('overview.createdByYou') : t('overview.createdBy', { name: room.owner?.pseudo ?? t('common.unknownUser') })}{' '}
+          <RelativeTime timestamp={room.createdAt} />
         </Text>
         {room.watchers.length === 0 ? (
           <Text size='sm' c='dimmed'>
-            Nobody is here.
+            {t('overview.nobody')}
           </Text>
         ) : (
           <Group gap='md'>
             {room.watchers.map(watcher => (
               <Group key={watcher.id} gap={6} wrap='nowrap'>
                 <UserAvatar user={{ id: watcher.id, name: watcher.pseudo }} size='sm' />
-                <Text size='sm'>{watcher.id === user.id ? `${watcher.pseudo} (you)` : watcher.pseudo}</Text>
+                <Text size='sm'>{watcher.id === user.id ? t('you', { ns: 'platform', name: watcher.pseudo }) : watcher.pseudo}</Text>
                 {watcher.id === room.owner?.id && (
                   <Badge size='sm' variant='default'>
-                    Owner
+                    {t('overview.owner')}
                   </Badge>
                 )}
                 {onKick && watcher.id !== room.owner?.id && (
-                  <Tooltip label={`Kick ${watcher.pseudo} out`}>
-                    <ActionIcon variant='subtle' color='red' size='sm' aria-label={`Kick ${watcher.pseudo} out`} onClick={() => onKick(watcher)}>
+                  <Tooltip label={t('overview.kick', { name: watcher.pseudo })}>
+                    <ActionIcon
+                      variant='subtle'
+                      color='red'
+                      size='sm'
+                      aria-label={t('overview.kick', { name: watcher.pseudo })}
+                      onClick={() => onKick(watcher)}
+                    >
                       <IconUserX size={14} />
                     </ActionIcon>
                   </Tooltip>

@@ -1,6 +1,7 @@
-import { VISIBILITIES } from '@front/utils/roomVisibility'
+import { VISIBILITY_ICONS } from '@front/utils/roomVisibility'
 import { Button, Group, NumberInput, PasswordInput, Radio, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
+import { useTranslation } from '@platform/client'
 import { ROOM_LIMITS, ROOM_VISIBILITIES, type RoomVisibility } from '@platform/model'
 import classes from './RoomSettingsForm.module.css'
 
@@ -21,6 +22,7 @@ type RoomSettingsFormProps = {
 
 /** The settings of a room: when creating it (home page), and when its owner changes them (room header) */
 const RoomSettingsForm = ({ initialValues, submitLabel, loading, onSubmit }: RoomSettingsFormProps) => {
+  const { t } = useTranslation('host')
   // editing a protected room: its password is kept when the field stays empty
   const hasPassword = initialValues.visibility === 'protected'
   const form = useForm({
@@ -28,15 +30,15 @@ const RoomSettingsForm = ({ initialValues, submitLabel, loading, onSubmit }: Roo
     // the NumberInput gives '' when emptied
     initialValues: { ...initialValues, maxParticipants: initialValues.maxParticipants as number | string, password: '' },
     validate: {
-      title: value => (value.trim().length === 0 ? 'Give the room a name' : null),
+      title: value => (value.trim().length === 0 ? t('settings.nameRequired') : null),
       maxParticipants: (value, values) =>
         values.visibility !== 'private' && (typeof value !== 'number' || value < ROOM_LIMITS.minParticipants || value > ROOM_LIMITS.maxParticipants)
-          ? `Between ${ROOM_LIMITS.minParticipants} and ${ROOM_LIMITS.maxParticipants}`
+          ? t('settings.participantsRange', { min: ROOM_LIMITS.minParticipants, max: ROOM_LIMITS.maxParticipants })
           : null,
       password: (value, values) => {
         if (values.visibility !== 'protected') return null
-        if (!value) return hasPassword ? null : 'A protected room needs a password'
-        return value.length < ROOM_LIMITS.passwordMin ? `At least ${ROOM_LIMITS.passwordMin} characters` : null
+        if (!value) return hasPassword ? null : t('settings.passwordRequired')
+        return value.length < ROOM_LIMITS.passwordMin ? t('settings.passwordTooShort', { min: ROOM_LIMITS.passwordMin }) : null
       }
     }
   })
@@ -55,22 +57,22 @@ const RoomSettingsForm = ({ initialValues, submitLabel, loading, onSubmit }: Roo
   return (
     <form onSubmit={submit}>
       <Stack gap='md'>
-        <TextInput label='Name' maxLength={ROOM_LIMITS.title} data-autofocus key={form.key('title')} {...form.getInputProps('title')} />
+        <TextInput label={t('settings.name')} maxLength={ROOM_LIMITS.title} data-autofocus key={form.key('title')} {...form.getInputProps('title')} />
 
-        <Radio.Group label='Who can join' key={form.key('visibility')} {...form.getInputProps('visibility')}>
+        <Radio.Group label={t('settings.whoCanJoin')} key={form.key('visibility')} {...form.getInputProps('visibility')}>
           <SimpleGrid cols={{ base: 1, xs: 3 }} spacing='xs' mt={6}>
             {ROOM_VISIBILITIES.map(value => {
-              const { label, description, icon: Icon } = VISIBILITIES[value]
+              const Icon = VISIBILITY_ICONS[value]
               return (
                 <Radio.Card key={value} value={value} radius='md' className={classes.visibility}>
                   <Group gap='sm' wrap='nowrap'>
                     <Icon size={20} stroke={1.5} />
                     <div>
                       <Text fw={600} size='sm'>
-                        {label}
+                        {t(`visibility.${value}.label`)}
                       </Text>
                       <Text size='xs' c='dimmed'>
-                        {description}
+                        {t(`visibility.${value}.description`)}
                       </Text>
                     </div>
                   </Group>
@@ -82,8 +84,8 @@ const RoomSettingsForm = ({ initialValues, submitLabel, loading, onSubmit }: Roo
 
         {visibility === 'protected' && (
           <PasswordInput
-            label='Password'
-            description={hasPassword ? 'Leave empty to keep the current password' : 'Whoever joins the room types it once'}
+            label={t('settings.password')}
+            description={hasPassword ? t('settings.keepPassword') : t('settings.passwordHint')}
             maxLength={ROOM_LIMITS.passwordMax}
             autoComplete='new-password'
             key={form.key('password')}
@@ -92,8 +94,8 @@ const RoomSettingsForm = ({ initialValues, submitLabel, loading, onSubmit }: Roo
         )}
 
         <NumberInput
-          label='Max participants'
-          description={visibility === 'private' ? 'Only you can enter a private room' : 'You included'}
+          label={t('settings.maxParticipants')}
+          description={visibility === 'private' ? t('settings.privateHint') : t('settings.youIncluded')}
           min={ROOM_LIMITS.minParticipants}
           max={ROOM_LIMITS.maxParticipants}
           allowDecimal={false}

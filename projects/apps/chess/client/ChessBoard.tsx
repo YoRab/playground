@@ -1,6 +1,6 @@
 import { DndContext, type DragEndEvent, DragOverlay, type DragStartEvent } from '@dnd-kit/core'
 import { ActionIcon, Alert, Button, Group, Overlay, Paper, Popover, ScrollArea, Stack, Table, Text, Title } from '@mantine/core'
-import { type AppProps, Loading } from '@platform/client'
+import { type AppProps, Loading, useTranslation } from '@platform/client'
 import { IconFlag, IconTrophy } from '@tabler/icons-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { type ChessGame, type PieceType, PROMOTIONS } from '../shared/types'
@@ -21,18 +21,19 @@ const BoardOverlay = ({ children }: { children: ReactNode }) => (
 
 /** How the game ended, above the moves */
 const GameResult = ({ game }: { game: ChessGame }) => {
+  const { t } = useTranslation('chess')
   if (game.result === 'pat') {
     return (
-      <Alert color='gray' title='Stalemate'>
-        Nobody can move: it is a draw.
+      <Alert color='gray' title={t('result.stalemate')}>
+        {t('result.draw')}
       </Alert>
     )
   }
   if (game.result === 'win' || game.result === 'giveup') {
     const loser = game.players.black?.id === game.winner?.id ? game.players.white : game.players.black
     return (
-      <Alert color='teal' icon={<IconTrophy />} title={`${game.winner?.pseudo ?? 'Someone'} wins`}>
-        {game.result === 'giveup' ? `${loser?.pseudo ?? 'The opponent'} resigned.` : 'Checkmate.'}
+      <Alert color='teal' icon={<IconTrophy />} title={t('result.wins', { name: game.winner?.pseudo ?? t('result.someone') })}>
+        {game.result === 'giveup' ? t('result.resigned', { name: loser?.pseudo ?? t('result.theOpponent') }) : t('result.checkmate')}
       </Alert>
     )
   }
@@ -41,6 +42,7 @@ const GameResult = ({ game }: { game: ChessGame }) => {
 
 /** The moves, one row per pair (white, black), scrolled to the last one */
 const MoveList = ({ history }: { history: ChessGame['history'] }) => {
+  const { t } = useTranslation('chess')
   const viewport = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (history.length) viewport.current?.scrollTo({ top: viewport.current.scrollHeight, behavior: 'smooth' })
@@ -49,7 +51,7 @@ const MoveList = ({ history }: { history: ChessGame['history'] }) => {
   if (history.length === 0) {
     return (
       <Text size='sm' c='dimmed'>
-        No move yet
+        {t('moves.none')}
       </Text>
     )
   }
@@ -59,8 +61,8 @@ const MoveList = ({ history }: { history: ChessGame['history'] }) => {
         <Table.Thead>
           <Table.Tr>
             <Table.Th w={36}>#</Table.Th>
-            <Table.Th>White</Table.Th>
-            <Table.Th>Black</Table.Th>
+            <Table.Th>{t('moves.white')}</Table.Th>
+            <Table.Th>{t('moves.black')}</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -80,21 +82,22 @@ const MoveList = ({ history }: { history: ChessGame['history'] }) => {
 
 /** Resigning asks for a confirmation: one misclick would end the game */
 const ResignButton = ({ onConfirm, loading }: { onConfirm: () => void; loading: boolean }) => {
+  const { t } = useTranslation('chess')
   const [opened, setOpened] = useState(false)
   return (
     <Popover opened={opened} onChange={setOpened} position='bottom' withArrow shadow='md'>
       <Popover.Target>
         <Button color='red' variant='light' leftSection={<IconFlag size={16} />} loading={loading} onClick={() => setOpened(value => !value)}>
-          Resign
+          {t('resign.button')}
         </Button>
       </Popover.Target>
       <Popover.Dropdown>
         <Text size='sm' mb='xs'>
-          Resign this game?
+          {t('resign.confirm')}
         </Text>
         <Group gap='xs' justify='flex-end'>
           <Button size='xs' variant='default' onClick={() => setOpened(false)}>
-            Cancel
+            {t('resign.cancel')}
           </Button>
           <Button
             size='xs'
@@ -104,7 +107,7 @@ const ResignButton = ({ onConfirm, loading }: { onConfirm: () => void; loading: 
               onConfirm()
             }}
           >
-            Resign
+            {t('resign.button')}
           </Button>
         </Group>
       </Popover.Dropdown>
@@ -113,6 +116,7 @@ const ResignButton = ({ onConfirm, loading }: { onConfirm: () => void; loading: 
 }
 
 const ChessBoard = ({ user, room, boardId }: AppProps) => {
+  const { t } = useTranslation('chess')
   const [modeSelection, setModeSelection] = useState<{ isMulti: boolean | undefined; ai?: string | undefined }>({ isMulti: undefined })
   const [shallPromote, setShallPromote] = useState<{ pieceId: string; position: [number, number] } | undefined>(undefined)
   const [boardData, setBoardData] = useState<ChessGame>()
@@ -271,23 +275,23 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
                 {needPlayer && (
                   <BoardOverlay>
                     {userColor || (needBothPlayer && !isOwner) ? (
-                      <Text ta='center'>Waiting for an opponent</Text>
+                      <Text ta='center'>{t('setup.waiting')}</Text>
                     ) : isOwner && modeSelection.isMulti === undefined ? (
                       <Stack gap='sm'>
-                        <Button onClick={() => setModeSelection({ isMulti: true })}>Play against a human</Button>
+                        <Button onClick={() => setModeSelection({ isMulti: true })}>{t('setup.vsHuman')}</Button>
                         {readyAIs?.map(readyAI => (
                           <Button key={readyAI.id} variant='light' onClick={() => setModeSelection({ isMulti: false, ai: readyAI.id })}>
-                            Play against {readyAI.pseudo}
+                            {t('setup.vsAI', { name: readyAI.pseudo })}
                           </Button>
                         ))}
                       </Stack>
                     ) : (
                       <Group justify='center' gap='sm'>
                         <Button variant='default' onClick={() => onJoinGame('white')} disabled={!!boardData.players.white}>
-                          Play white
+                          {t('setup.playWhite')}
                         </Button>
                         <Button color='dark' onClick={() => onJoinGame('black')} disabled={!!boardData.players.black}>
-                          Play black
+                          {t('setup.playBlack')}
                         </Button>
                       </Group>
                     )}
@@ -297,11 +301,17 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
                 {shallPromote && (
                   <BoardOverlay>
                     <Stack gap='sm' align='center'>
-                      <Title order={4}>Pawn promotion</Title>
-                      <Text size='sm'>Choose a piece to promote your pawn to</Text>
+                      <Title order={4}>{t('promotion.title')}</Title>
+                      <Text size='sm'>{t('promotion.hint')}</Text>
                       <Group gap='sm'>
                         {PROMOTIONS.map(piece => (
-                          <ActionIcon key={piece} variant='default' size={64} aria-label={piece} onClick={() => choosePromotion(piece)}>
+                          <ActionIcon
+                            key={piece}
+                            variant='default'
+                            size={64}
+                            aria-label={t(`pieces.${piece}`)}
+                            onClick={() => choosePromotion(piece)}
+                          >
                             <Piece piece={{ type: piece, color: userColor! }} />
                           </ActionIcon>
                         ))}
@@ -314,7 +324,7 @@ const ChessBoard = ({ user, room, boardId }: AppProps) => {
             </div>
             <Paper withBorder p='sm' className={classes.panel}>
               <Group justify='space-between' mih={30}>
-                <Text fw={600}>Moves</Text>
+                <Text fw={600}>{t('moves.title')}</Text>
                 {canResign && <ResignButton onConfirm={() => giveUpMutation.mutate({ boardId })} loading={giveUpMutation.isPending} />}
               </Group>
               <GameResult game={boardData} />

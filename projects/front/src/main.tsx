@@ -4,6 +4,8 @@ import '@mantine/notifications/styles.css'
 import '@fontsource-variable/inter'
 import '@fontsource-variable/outfit'
 import './index.css'
+// before the components: the texts are ready for the first render
+import '@front/i18n'
 import App from '@front/components/App'
 import ReactDOM from 'react-dom/client'
 

@@ -1,6 +1,6 @@
 import { reportError } from '@front/utils/reportError'
 import { trpc } from '@front/utils/trpc'
-import { createWSClient, httpBatchLink, splitLink, wsLink } from '@platform/client'
+import { createWSClient, errorMessage, httpBatchLink, i18n, splitLink, wsLink } from '@platform/client'
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 
@@ -31,7 +31,7 @@ const UseTrpc = () => {
         mutationCache: new MutationCache({
           onError: (error, _variables, _onMutateResult, mutation) => {
             if (mutation.meta?.handlesError) return
-            reportError('Error', error.message)
+            reportError(i18n.t('errors.title', { ns: 'host' }), errorMessage(error))
           }
         })
       })

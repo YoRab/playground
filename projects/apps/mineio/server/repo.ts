@@ -1,4 +1,4 @@
-import { TRPCError, users } from '@platform/server'
+import { i18nError, users } from '@platform/server'
 import {
   BOT_LEVEL_LABELS,
   type BotLevel,
@@ -15,20 +15,21 @@ import type { Lobby, MineMessage } from './types'
 
 type BoardRecord = NonNullable<ReturnType<typeof boards.find>>
 
-const fail = (code: 'NOT_FOUND' | 'FORBIDDEN' | 'BAD_REQUEST', message: string) => new TRPCError({ code, message })
+/** An error that the client translates with the dictionaries of the app (`errors.<key>`) */
+const fail = (code: 'NOT_FOUND' | 'FORBIDDEN' | 'BAD_REQUEST', key: string, message: string) => i18nError(code, `mineio:errors.${key}`, message)
 
 const findBoard = (boardId: string): BoardRecord => {
   const record = boards.find(boardId)
-  if (!record) throw fail('NOT_FOUND', 'Unknown mine.io board')
+  if (!record) throw fail('NOT_FOUND', 'boardNotFound', 'Unknown mine.io board')
   return record
 }
 
 const requireOwner = (record: BoardRecord, userId: string) => {
-  if (record.owner !== userId) throw fail('FORBIDDEN', 'Only the owner of the board can do this')
+  if (record.owner !== userId) throw fail('FORBIDDEN', 'ownerOnly', 'Only the owner of the board can do this')
 }
 
 const requireLobby = (record: BoardRecord) => {
-  if (record.data.match) throw fail('BAD_REQUEST', 'The game has already started')
+  if (record.data.match) throw fail('BAD_REQUEST', 'alreadyStarted', 'The game has already started')
 }
 
 /** The corner of a user, or -1 */
@@ -82,7 +83,7 @@ export const removeBoard = ({ boardId, userId }: { boardId: string; userId: stri
 export const takeSeat = (boardId: string, userId: string, seat: number) => {
   const record = findBoard(boardId)
   requireLobby(record)
-  if (record.data.seats[seat]) throw fail('BAD_REQUEST', 'This corner is taken')
+  if (record.data.seats[seat]) throw fail('BAD_REQUEST', 'cornerTaken', 'This corner is taken')
   // a player has one corner: taking another one moves them
   const previous = seatOf(record, userId)
   if (previous >= 0) record.data.seats[previous] = null
@@ -103,7 +104,7 @@ export const addBot = (boardId: string, userId: string, seat: number, level: Bot
   const record = findBoard(boardId)
   requireOwner(record, userId)
   requireLobby(record)
-  if (record.data.seats[seat]) throw fail('BAD_REQUEST', 'This corner is taken')
+  if (record.data.seats[seat]) throw fail('BAD_REQUEST', 'cornerTaken', 'This corner is taken')
   record.data.seats[seat] = { kind: 'bot', level }
   publishSnapshot(record)
 }
@@ -139,7 +140,7 @@ export const startGame = (boardId: string, userId: string) => {
   requireOwner(record, userId)
   requireLobby(record)
   const lobby = lobbyOf(record)
-  if (lobby.seats.filter(Boolean).length < 2) throw fail('BAD_REQUEST', 'A game needs at least two players')
+  if (lobby.seats.filter(Boolean).length < 2) throw fail('BAD_REQUEST', 'twoPlayersNeeded', 'A game needs at least two players')
 
   const seats: Seats = lobby.seats.map(seat => {
     if (!seat) return null
@@ -184,9 +185,9 @@ export const backToLobby = (boardId: string, userId: string) => {
 export const reveal = (boardId: string, userId: string, cell: number): RevealResult => {
   const record = findBoard(boardId)
   const match = record.data.match
-  if (!match) throw fail('BAD_REQUEST', 'The game has not started')
+  if (!match) throw fail('BAD_REQUEST', 'notStarted', 'The game has not started')
   const seat = seatOf(record, userId)
-  if (seat < 0) throw fail('FORBIDDEN', 'You are not playing this game')
+  if (seat < 0) throw fail('FORBIDDEN', 'notPlaying', 'You are not playing this game')
   return match.reveal(seat, cell)
 }
 

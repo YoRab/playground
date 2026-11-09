@@ -7,6 +7,7 @@ export { createTopic, liveQuery, type Topic } from './realtime'
 export {
   boardProcedure,
   type Context,
+  i18nError,
   mergeRouters,
   protectedProcedure,
   publicProcedure,

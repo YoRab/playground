@@ -1,21 +1,22 @@
 import { trpc } from '@front/utils/trpc'
 import { Button, Divider, Group, Modal, Stack, Text, Title } from '@mantine/core'
-import { UserAvatar } from '@platform/client'
+import { UserAvatar, useTranslation } from '@platform/client'
 import type { Room } from '@platform/model'
 import { IconUserCheck } from '@tabler/icons-react'
 import RoomSettingsForm from './RoomSettingsForm'
 
 /** The users the owner kicked out, to let them in again */
 const BannedUsers = ({ room }: { room: Room }) => {
+  const { t } = useTranslation('host')
   const unban = trpc.protected.unbanUser.useMutation()
   const banned = room.banned ?? []
 
   return (
     <Stack gap='xs'>
-      <Title order={5}>Banned</Title>
+      <Title order={5}>{t('settings.banned')}</Title>
       {banned.length === 0 ? (
         <Text size='sm' c='dimmed'>
-          Nobody. The users you kick out from the Overview tab appear here.
+          {t('settings.noBanned')}
         </Text>
       ) : (
         banned.map(user => (
@@ -33,7 +34,7 @@ const BannedUsers = ({ room }: { room: Room }) => {
               loading={unban.isPending && unban.variables?.userId === user.id}
               onClick={() => unban.mutate({ roomId: room.id, userId: user.id })}
             >
-              Let back in
+              {t('settings.letBackIn')}
             </Button>
           </Group>
         ))
@@ -44,14 +45,15 @@ const BannedUsers = ({ room }: { room: Room }) => {
 
 /** The owner changes the settings of the room (applied live to everyone in it) and lifts the bans */
 const RoomSettingsModal = ({ room, opened, onClose }: { room: Room; opened: boolean; onClose: () => void }) => {
+  const { t } = useTranslation('host')
   const update = trpc.protected.updateRoom.useMutation({ onSuccess: onClose })
 
   return (
-    <Modal opened={opened} onClose={onClose} title='Room settings' size='lg'>
+    <Modal opened={opened} onClose={onClose} title={t('room.settings')} size='lg'>
       {/* the content is unmounted when the modal closes: the form starts from the current settings every time */}
       <RoomSettingsForm
         initialValues={{ title: room.title, visibility: room.visibility, maxParticipants: room.maxParticipants }}
-        submitLabel='Save'
+        submitLabel={t('settings.save')}
         loading={update.isPending}
         onSubmit={values => update.mutate({ roomId: room.id, ...values })}
       />

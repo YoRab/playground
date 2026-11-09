@@ -1,4 +1,4 @@
-import { type AppProps, ErrorAlert, Loading } from '@platform/client'
+import { type AppProps, ErrorAlert, Loading, type ServerError } from '@platform/client'
 import { decodeView } from '@yorab/mine.io/engine'
 import { BoardStoreProvider, createBoardStore } from '@yorab/mine.io/react'
 import { useRef, useState } from 'react'
@@ -10,7 +10,7 @@ import { trpc } from './trpc'
 const MineIo = ({ user, boardId }: AppProps) => {
   const [store] = useState(createBoardStore)
   const [lobby, setLobby] = useState<Lobby | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ServerError | null>(null)
   // a new attempt subscribes again, to start over from a snapshot
   const [attempt, setAttempt] = useState(0)
   const lastSeq = useRef(-1)
@@ -48,11 +48,11 @@ const MineIo = ({ user, boardId }: AppProps) => {
             break
         }
       },
-      onError: err => setError(err.message)
+      onError: err => setError(err)
     }
   )
 
-  if (error) return <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
+  if (error) return <ErrorAlert error={error} />
   if (!lobby) return <Loading />
 
   return (

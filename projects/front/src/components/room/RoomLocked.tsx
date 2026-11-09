@@ -1,6 +1,7 @@
 import { trpc } from '@front/utils/trpc'
 import { Button, Center, Loader, Paper, PasswordInput, Stack, Text, ThemeIcon, Title } from '@mantine/core'
 import { useForm } from '@mantine/form'
+import { errorMessage, useTranslation } from '@platform/client'
 import type { LockedRoom, RoomLockReason } from '@platform/model'
 import { type Icon, IconArrowLeft, IconEyeOff, IconLock, IconUsers, IconUserX } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
@@ -14,10 +15,11 @@ const ICONS: Record<RoomLockReason, { icon: Icon; color?: string }> = {
 
 /** Enters a protected room: once the password is accepted, the room subscription lets the user in */
 const PasswordForm = ({ roomId }: { roomId: string }) => {
+  const { t } = useTranslation('host')
   const form = useForm({ mode: 'uncontrolled', initialValues: { password: '' } })
   const join = trpc.protected.joinRoom.useMutation({
     meta: { handlesError: true },
-    onError: error => form.setFieldError('password', error.message)
+    onError: error => form.setFieldError('password', errorMessage(error))
   })
 
   const submit = form.onSubmit(({ password }) => {
@@ -28,11 +30,17 @@ const PasswordForm = ({ roomId }: { roomId: string }) => {
     <form onSubmit={submit} style={{ width: '100%' }}>
       <Stack gap='sm'>
         <Text size='sm' c='dimmed'>
-          This room is protected by a password.
+          {t('locked.protected')}
         </Text>
-        <PasswordInput aria-label='Password' placeholder='Password' autoFocus key={form.key('password')} {...form.getInputProps('password')} />
+        <PasswordInput
+          aria-label={t('settings.password')}
+          placeholder={t('settings.password')}
+          autoFocus
+          key={form.key('password')}
+          {...form.getInputProps('password')}
+        />
         <Button type='submit' fullWidth loading={join.isPending}>
-          Join
+          {t('locked.join')}
         </Button>
       </Stack>
     </form>
@@ -47,6 +55,7 @@ const Message = ({ children }: { children: ReactNode }) => (
 
 /** A room the user cannot enter (yet): the password to type, a spot to wait for, or why they are kept out */
 const RoomLocked = ({ room, reason }: { room: LockedRoom; reason: RoomLockReason }) => {
+  const { t } = useTranslation('host')
   const { icon: ReasonIcon, color } = ICONS[reason]
 
   return (
@@ -61,24 +70,22 @@ const RoomLocked = ({ room, reason }: { room: LockedRoom; reason: RoomLockReason
               {room.title}
             </Title>
             <Text size='sm' c='dimmed'>
-              by {room.owner?.pseudo ?? 'an unknown user'}
+              {t('locked.by', { name: room.owner?.pseudo ?? t('common.unknownUser') })}
             </Text>
           </div>
 
           {reason === 'password' && <PasswordForm roomId={room.id} />}
           {reason === 'full' && (
             <>
-              <Message>
-                This room is full ({room.participants}/{room.maxParticipants}). You will enter as soon as a spot frees up.
-              </Message>
+              <Message>{t('locked.full', { count: room.participants, max: room.maxParticipants })}</Message>
               <Loader type='dots' />
             </>
           )}
-          {reason === 'private' && <Message>This room is private: only its owner can enter.</Message>}
-          {reason === 'banned' && <Message>The owner removed you from this room.</Message>}
+          {reason === 'private' && <Message>{t('locked.private')}</Message>}
+          {reason === 'banned' && <Message>{t('locked.banned')}</Message>}
 
           <Button component='a' href='#/home' variant='subtle' leftSection={<IconArrowLeft size={16} />}>
-            All rooms
+            {t('room.allRooms')}
           </Button>
         </Stack>
       </Paper>

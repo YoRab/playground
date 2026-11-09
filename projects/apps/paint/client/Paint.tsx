@@ -1,6 +1,8 @@
 import '@yorab/react-paint/react-paint.css'
-import { type AppProps, ErrorAlert, Loading, PresenceBar, useYDoc, type YBoard } from '@platform/client'
-import { Canvas, Editor, type EditorOptions, useReactPaint } from '@yorab/react-paint'
+import { type AppProps, ErrorAlert, type Language, Loading, PresenceBar, useLanguage, useYDoc, type YBoard } from '@platform/client'
+import { Canvas, DEFAULT_EDITOR_LOCALE, Editor, type EditorLocale, type EditorOptions, useReactPaint } from '@yorab/react-paint'
+import { useMemo } from 'react'
+import { EDITOR_LOCALE_FR } from './locales/editor.fr'
 import classes from './Paint.module.css'
 import RemotePointers, { usePointerPublisher } from './RemotePointers'
 import { trpc } from './trpc'
@@ -18,6 +20,9 @@ const EDITOR_OPTIONS: EditorOptions = {
   fontDisabledColor: 'var(--mantine-color-dimmed)'
 }
 
+/** The texts of the editor and of its canvas in each language of the interface: react-paint ships English only */
+const EDITOR_LOCALES: Record<Language, EditorLocale> = { en: DEFAULT_EDITOR_LOCALE, fr: EDITOR_LOCALE_FR }
+
 const Drawing = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; userId: string }) => {
   const paint = useReactPaint({
     mode: 'editor',
@@ -30,6 +35,8 @@ const Drawing = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; us
     }
   })
   usePaintDoc(paint, board.doc)
+  const language = useLanguage()
+  const options = useMemo(() => ({ ...EDITOR_OPTIONS, locale: EDITOR_LOCALES[language] }), [language])
   const pointerHandlers = usePointerPublisher(paint, board.awareness)
 
   return (
@@ -38,7 +45,7 @@ const Drawing = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; us
         <PresenceBar awareness={board.awareness} userId={userId} unsent={unsent} />
       </div>
       <div className={classes.editorContainer}>
-        <Editor paint={paint} options={EDITOR_OPTIONS}>
+        <Editor paint={paint} options={options}>
           <Canvas paint={paint} />
         </Editor>
       </div>
@@ -52,7 +59,7 @@ const Paint = ({ boardId, user }: AppProps) => {
   const { board, unsent, error } = useYDoc({ client: client.paint, boardId, user })
 
   if (error) {
-    return <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
+    return <ErrorAlert error={error} />
   }
   if (!board) {
     return <Loading />

@@ -1,4 +1,14 @@
-const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+const formatters = new Map<string, Intl.RelativeTimeFormat>()
+
+/** One formatter per language, created on first use */
+const formatterFor = (language: string) => {
+  let formatter = formatters.get(language)
+  if (!formatter) {
+    formatter = new Intl.RelativeTimeFormat(language, { numeric: 'auto' })
+    formatters.set(language, formatter)
+  }
+  return formatter
+}
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 24 * 3600],
@@ -9,11 +19,11 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['minute', 60]
 ]
 
-/** "just now", "5 minutes ago", "yesterday"... */
-export const formatRelativeTime = (timestamp: number, now: number) => {
+/** "5 minutes ago", "yesterday"... in `language`; undefined under a minute ("just now", a text of the dictionaries) */
+export const formatRelativeTime = (timestamp: number, now: number, language: string) => {
   const seconds = Math.round((timestamp - now) / 1000)
   for (const [unit, size] of UNITS) {
-    if (Math.abs(seconds) >= size) return formatter.format(Math.round(seconds / size), unit)
+    if (Math.abs(seconds) >= size) return formatterFor(language).format(Math.round(seconds / size), unit)
   }
-  return 'just now'
+  return undefined
 }

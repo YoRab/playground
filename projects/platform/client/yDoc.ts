@@ -2,6 +2,7 @@ import { fromBase64, toBase64 } from 'lib0/buffer'
 import { type Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import type { AwarenessChanges, YDocChange, YDocSnapshot } from '../server/yDocApp'
+import type { ServerError } from './i18n'
 
 /**
  * The procedures of a `defineYDocApp` board, as the vanilla tRPC client gives them: `trpc.useUtils().client.<app type>`.
@@ -11,7 +12,7 @@ export type YDocClient = {
   sync: {
     subscribe: (
       input: { boardId: string; clientId: number },
-      observer: { onData: (message: YDocSnapshot | YDocChange) => void; onError: (err: { message: string }) => void }
+      observer: { onData: (message: YDocSnapshot | YDocChange) => void; onError: (err: ServerError) => void }
     ) => { unsubscribe: () => void }
   }
   push: { mutate: (input: { boardId: string; update: string }) => Promise<string> }
@@ -28,8 +29,8 @@ export type SyncStatus = {
   synced: boolean
   /** The last push failed: some local changes are not on the server yet (retried until it works) */
   unsent: boolean
-  /** The subscription failed (unknown board…) */
-  error?: string
+  /** The subscription failed (unknown board…): shown with `errorMessage` */
+  error?: ServerError
 }
 
 /**
@@ -140,7 +141,7 @@ export const syncYDoc = ({
       },
       onError(err) {
         console.error('Subscription error:', err)
-        onStatus({ error: err.message })
+        onStatus({ error: err })
       }
     }
   )

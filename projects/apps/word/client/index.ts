@@ -1,10 +1,11 @@
 import { defineClientApp } from '@platform/client'
 import { lazy } from 'react'
 import icon from './assets/word.svg'
+import en from './locales/en'
+import fr from './locales/fr'
 
 export default defineClientApp({
-  label: 'Word',
-  description: "A shared text: write together and see everyone's cursor",
+  messages: { en, fr },
   icon,
   color: 'blue',
   Component: lazy(() => import('./Word'))

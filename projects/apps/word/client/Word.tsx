@@ -1,11 +1,12 @@
 import { Paper, Stack } from '@mantine/core'
-import { type AppProps, ErrorAlert, Loading, PresenceBar, useYDoc, type YBoard } from '@platform/client'
+import { type AppProps, ErrorAlert, Loading, PresenceBar, useTranslation, useYDoc, type YBoard } from '@platform/client'
 import RemoteCursors from './RemoteCursors'
 import { trpc } from './trpc'
 import { useYTextarea } from './useYTextarea'
 import classes from './Word.module.css'
 
 const Editor = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; userId: string }) => {
+  const { t } = useTranslation('word')
   const { text, textareaProps } = useYTextarea(board)
 
   return (
@@ -14,7 +15,7 @@ const Editor = ({ board, unsent, userId }: { board: YBoard; unsent: boolean; use
       <PresenceBar awareness={board.awareness} userId={userId} unsent={unsent} />
       <Paper withBorder shadow='xs' p={{ base: 'md', sm: 'xl' }}>
         <div className={classes.editor}>
-          <textarea {...textareaProps} className={`${classes.surface} ${classes.input}`} aria-label='Text of the board' spellCheck />
+          <textarea {...textareaProps} className={`${classes.surface} ${classes.input}`} aria-label={t('editor')} spellCheck />
           <RemoteCursors doc={board.doc} awareness={board.awareness} text={text} />
         </div>
       </Paper>
@@ -27,7 +28,7 @@ const Word = ({ boardId, user }: AppProps) => {
   const { board, unsent, error } = useYDoc({ client: client.word, boardId, user })
 
   if (error) {
-    return <ErrorAlert title='Board unavailable'>{error}</ErrorAlert>
+    return <ErrorAlert error={error} />
   }
   if (!board) {
     return <Loading />

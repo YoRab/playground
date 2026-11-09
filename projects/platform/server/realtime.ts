@@ -1,5 +1,5 @@
 import { EventEmitter, on } from 'node:events'
-import { TRPCError } from '@trpc/server'
+import { i18nError } from './trpc'
 
 // One in-process bus for every topic: a single server process, like the in-memory storage
 const bus = new EventEmitter()
@@ -69,7 +69,7 @@ export async function* liveQuery<T, Payload>({
   try {
     const initial = await fetch()
     if (initial === undefined) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: `unknown ${topic.name}` })
+      throw i18nError('NOT_FOUND', 'platform:errors.notFound', `unknown ${topic.name}`)
     }
     yield initial
 

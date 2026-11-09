@@ -12,9 +12,11 @@
     "@trpc/client": "11.24.0",
     "@trpc/react-query": "11.24.0",
     "@trpc/server": "11.24.0",
+    "i18next": "26.4.7",
     "lib0": "0.2.119",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "react-i18next": "17.1.4",
     "y-protocols": "1.0.7",
     "yjs": "13.6.33",
     "zod": "4.6.7"

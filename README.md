@@ -11,6 +11,7 @@ A sandbox for real-time multiplayer mini-apps (chess with AI, paint, word…). A
 - **Mine.io**: real-time territory minesweeper against humans and bots, the server holding the mines and running the bots (from the sibling repository [mine.io](../mine.io))
 - **Real-time**: tRPC subscriptions over WebSocket, live presence of the users in a room
 - **Identification**: nickname only, JWT token (no password)
+- **Languages**: English and French (i18next), picked in the navbar, the browser's language by default
 - **Storage**: in memory (everything is lost when the server restarts)
 
 ## 🏗️ Project Structure
@@ -22,7 +23,7 @@ playground/
 ├── projects/
 │   ├── platform/      # SDK shared by the host and the apps (the only package depending on tRPC)
 │   │   ├── server/    #   tRPC instance & procedures, realtime topics, presence, board store, app contract
-│   │   ├── client/    #   app contract, tRPC client runtime, shared UI (Loading)
+│   │   ├── client/    #   app contract, tRPC client runtime, i18n (i18next), shared UI (Loading)
 │   │   └── model.ts   #   User, Room, Board
 │   ├── apps/          # one package per app
 │   │   ├── chess/     #   shared/ (rules), server/ (game + AI client API), client/ (board UI)
@@ -52,25 +53,44 @@ Dependency graph: `platform` ← `apps/*` ← `back` (the `server/` entries) and
    export type NotesApi = AppApi<typeof notes>
    ```
    `defineYDocApp` is enough when a board is a shared document: it generates the board lifecycle and the Yjs sync procedures (concurrent edits merge). The client side comes with it: `useYDoc`, `usePeers` and `PresenceBar` from `@platform/client` (see `apps/word/client`). For custom logic, use `defineServerApp({ type, create, remove, router })` with `createTopic` / `liveQuery` (see `apps/chess/server`), and write the procedures of a board with `boardProcedure`: it adds `boardId` to the input and refuses the users who have no access to the board's room (private, password, kicked out).
-3. **Client** – `client/trpc.ts` (`createTRPCReact<NotesApi>()` from `@platform/client`), a component receiving `AppProps` (`{ user, room, boardId }`), and `client/index.ts`:
+3. **Client** – `client/trpc.ts` (`createTRPCReact<NotesApi>()` from `@platform/client`), a component receiving `AppProps` (`{ user, room, boardId }`), its dictionaries in `client/locales/`:
+   ```ts
+   // client/locales/en.ts: the reference, with the label and the description of the app
+   const en = { label: 'Notes', description: 'Shared sticky notes for the whole room', add: 'Add a note' }
+   export default en
+
+   // the namespace of the app is its type: it types the keys of useTranslation('notes')
+   declare module '@platform/client/i18n' {
+     interface Namespaces {
+       notes: typeof en
+     }
+   }
+
+   // client/locales/fr.ts: the same keys, or the build fails
+   const fr: TranslationOf<typeof en> = { label: 'Notes', description: 'Des post-it partagés par tout le salon', add: 'Ajouter une note' }
+   export default fr
+   ```
+   and `client/index.ts`:
    ```ts
    import icon from './assets/notes.svg'
+   import en from './locales/en'
+   import fr from './locales/fr'
 
    export default defineClientApp({
-     label: 'Notes',
-     description: 'Shared sticky notes for the whole room',
+     messages: { en, fr },
      icon, // shown in an <img>: write its colors in the SVG, currentColor does not follow the color scheme
      color: 'yellow', // Mantine color: tint of the icon, hover of its tile in the board picker
      Component: lazy(() => import('./Notes'))
    })
    ```
-   The label, icon and description appear in the board picker, the tabs of the room, the room cards of the home page and the login page. For avatars, use `UserAvatars` and `userColor` from `@platform/client`: a user keeps the same color everywhere.
+   The label, icon and description appear in the board picker, the tabs of the room, the room cards of the home page and the login page. In the components, `const { t } = useTranslation('notes')` (from `@platform/client`), then `t('add')`. For avatars, use `UserAvatars` and `userColor` from `@platform/client`: a user keeps the same color everywhere.
 4. **Register** it: one line in [projects/back/src/apps.ts](projects/back/src/apps.ts) and one in [projects/front/src/apps.ts](projects/front/src/apps.ts). The build fails if an app is registered on the server and not on the client.
 5. `pnpm install` to link the new package.
 
 Rules of thumb:
 - the `type` of an app is its tRPC namespace (`trpc.<type>.*`): it must be unique and must not be `public` or `protected` (nor the namespace of an external client). The server refuses to start otherwise;
-- import tRPC only from `@platform/server` / `@platform/client`, never from `@trpc/*`: one copy of tRPC at runtime is what lets the apps share the React context of the shell.
+- import tRPC only from `@platform/server` / `@platform/client`, never from `@trpc/*`: one copy of tRPC at runtime is what lets the apps share the React context of the shell. Same for i18next: `useTranslation` comes from `@platform/client`;
+- an error the user may see is thrown with `i18nError(code, 'notes:errors.<key>', 'English message')` from `@platform/server`, its key in the `errors` of the app's dictionaries: the client shows it in the user's language.
 
 ### External clients (bots, agents)
 
