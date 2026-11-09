@@ -1,4 +1,4 @@
-import type { DataChanges, ExportedShape, StateData } from '@yorab/react-paint'
+import { type DataChanges, type ExportedShape, type ShapesOrder, type StateData, shallowEqual } from '@yorab/react-paint'
 import type * as Y from 'yjs'
 
 /*
@@ -10,6 +10,8 @@ import type * as Y from 'yjs'
 
 export const shapesOf = (doc: Y.Doc) => doc.getMap<ExportedShape>('shapes')
 export const orderOf = (doc: Y.Doc) => doc.getArray<string>('order')
+/** The settings shared by everyone on the board: the gap of the grid (`gridGap`) */
+export const settingsOf = (doc: Y.Doc) => doc.getMap<number>('settings')
 
 /**
  * The shapes of the drawing, from the foreground. Every client gets the same list from the same document:
@@ -31,6 +33,74 @@ export const readShapes = (doc: Y.Doc): ExportedShape[] => {
   return result
 }
 
+const sameValue = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+/** A shape of the tree with the id of its group (undefined for a shape of the drawing) */
+type TreeNode = { shape: ExportedShape; parentId: string | undefined }
+
+/** Every shape of the drawing, the ones of the groups too, by id, and the ids of each list (the drawing under undefined, then each group) */
+const indexDrawing = (drawing: ExportedShape[]) => {
+  const nodes = new Map<string, TreeNode>()
+  const lists = new Map<string | undefined, string[]>()
+  const walk = (list: ExportedShape[], parentId: string | undefined) => {
+    lists.set(
+      parentId,
+      list.map(shape => shape.id)
+    )
+    for (const shape of list) {
+      nodes.set(shape.id, { shape, parentId })
+      if (shape.type === 'group') walk(shape.shapes, shape.id)
+    }
+  }
+  walk(drawing, undefined)
+  return { nodes, lists }
+}
+
+/** A group changes with its own fields and the ids of its shapes, not with the content of its shapes: they are listed apart */
+const withoutContent = (shape: ExportedShape) => {
+  if (shape.type !== 'group') return shape
+  const { shapes, ...fields } = shape
+  return { ...fields, shapes: shapes.map(({ id }) => id) }
+}
+
+/**
+ * The changes which bring the drawing `previous` to `next`, in the format of the `dataChanged` event of react-paint, to be
+ * applied with `actions.applyChanges`: it merges them field by field with what the user changed meanwhile.
+ */
+export const diffDrawings = (previous: ExportedShape[], next: ExportedShape[]): DataChanges => {
+  const before = indexDrawing(previous)
+  const after = indexDrawing(next)
+
+  const added: ExportedShape[] = []
+  const updated: DataChanges['updated'] = []
+  const removed: ExportedShape[] = []
+  for (const [id, { shape }] of after.nodes) {
+    const was = before.nodes.get(id)
+    if (!was) added.push(shape)
+    // Yjs gives back the object it holds until the shape is written again: most shapes are the same one
+    else if (was.shape !== shape && !sameValue(withoutContent(was.shape), withoutContent(shape))) updated.push({ shape, previous: was.shape })
+  }
+  for (const [id, { shape }] of before.nodes) if (!after.nodes.has(id)) removed.push(shape)
+
+  // the lists whose ids changed, the drawing first and each group after the list holding it
+  const order: ShapesOrder[] = []
+  for (const [parentId, ids] of after.lists) if (!shallowEqual(ids, before.lists.get(parentId))) order.push({ parentId, ids })
+
+  // whether the shapes kept moved: to another group, or in another order among the shapes of their list kept too
+  const kept = (ids: string[] | undefined) => (ids ?? []).filter(id => before.nodes.has(id) && after.nodes.has(id))
+  const changedGroup = () => {
+    for (const [id, { parentId }] of after.nodes) {
+      const was = before.nodes.get(id)
+      if (was && was.parentId !== parentId) return true
+    }
+    return false
+  }
+  const reordered =
+    order.length > 0 && (changedGroup() || order.some(({ parentId, ids }) => !shallowEqual(kept(ids), kept(before.lists.get(parentId)))))
+
+  return { added, updated, removed, reordered, order }
+}
+
 /**
  * Changes `yarray` into `next` by replacing what lies between their common prefix and suffix: an id inserted
  * at the same time by someone else is kept.
@@ -48,14 +118,15 @@ const applyArrayDiff = (yarray: Y.Array<string>, next: string[]) => {
   if (inserted.length > 0) yarray.insert(start, inserted)
 }
 
-const sameValue = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+/** What writeLocalChange needs of the changes of react-paint: the shapes removed are only known by their ids */
+export type LocalChanges = Pick<DataChanges, 'added' | 'updated' | 'reordered'> & { removed: { id: string }[] }
 
 /**
  * Writes a change of the local drawing (the arguments of the `dataChanged` event of react-paint) to the document.
  * Only what the change touches is written: a shape received from another client in the meantime is left alone.
  * What the document already holds is not written again: the echo of a change received makes no update.
  */
-export const writeLocalChange = (doc: Y.Doc, data: StateData, changes: DataChanges) => {
+export const writeLocalChange = (doc: Y.Doc, data: StateData, changes: LocalChanges) => {
   const drawing = data.shapes ?? []
   // id of every shape, a shape of a group too → id of the shape of the drawing which holds it
   const rootOf = new Map<string, string>()
